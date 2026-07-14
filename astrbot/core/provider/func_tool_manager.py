@@ -166,7 +166,7 @@ async def _quick_test_mcp_connection(config: dict) -> tuple[bool, str]:
     timeout = cfg.get("timeout", 10)
 
     try:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(trust_env=True) as session:
             if cfg.get("transport") == "streamable_http":
                 test_payload = {
                     "jsonrpc": "2.0",
