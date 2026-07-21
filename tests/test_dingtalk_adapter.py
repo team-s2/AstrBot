@@ -3,6 +3,7 @@ import threading
 
 import pytest
 
+from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.sources.dingtalk import dingtalk_adapter
 from astrbot.core.platform.sources.dingtalk.dingtalk_adapter import (
     DINGTALK_RECONNECT_INITIAL_DELAY,
@@ -76,3 +77,30 @@ async def test_dingtalk_reconnect_delay_wakes_on_terminate(monkeypatch):
             await adapter.terminate()
             run_task.cancel()
             await asyncio.gather(run_task, return_exceptions=True)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("use_markdown", "expected_key", "expected_param"),
+    [
+        (None, "sampleMarkdown", {"title": "AstrBot", "text": "first\nsecond"}),
+        (False, "sampleText", {"content": "first\nsecond"}),
+    ],
+)
+async def test_dingtalk_text_respects_markdown_mode(
+    use_markdown,
+    expected_key,
+    expected_param,
+):
+    sent = []
+    adapter = DingtalkPlatformAdapter.__new__(DingtalkPlatformAdapter)
+
+    async def capture_message(open_conversation_id, robot_code, msg_key, msg_param):
+        sent.append((open_conversation_id, robot_code, msg_key, msg_param))
+
+    adapter._send_group_message = capture_message
+    chain = MessageChain().message("first\nsecond").use_markdown(use_markdown)
+
+    await adapter._send_message_chain("group", "conversation", "robot", chain)
+
+    assert sent == [("conversation", "robot", expected_key, expected_param)]

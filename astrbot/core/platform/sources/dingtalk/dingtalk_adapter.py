@@ -577,13 +577,17 @@ class DingtalkPlatformAdapter(Platform):
                 text = segment.text.strip()
                 if not text and not at_str:
                     continue
-                await send_message(
-                    msg_key="sampleMarkdown",
-                    msg_param={
-                        "title": "AstrBot",
-                        "text": f"{at_str} {text}".strip(),
-                    },
-                )
+                text = f"{at_str} {text}".strip()
+                if message_chain.use_markdown_ is False:
+                    await send_message(
+                        msg_key="sampleText",
+                        msg_param={"content": text},
+                    )
+                else:
+                    await send_message(
+                        msg_key="sampleMarkdown",
+                        msg_param={"title": "AstrBot", "text": text},
+                    )
             elif isinstance(segment, Image):
                 photo_url = segment.file or segment.url or ""
                 if photo_url.startswith(("http://", "https://")):
