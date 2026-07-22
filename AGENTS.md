@@ -1,3 +1,20 @@
+本仓库是上游 `AstrBotDevs/AstrBot` 的 fork。
+
+分支说明：
+
+- `master`：以最新的上游 release tag 为基线进行 rebase，保留 team-s2 仍然需要的增量修改，并由 GitHub Actions 构建 `ghcr.io/team-s2/astrbot`。
+
+本仓库的例行维护流程：
+
+- 检查上游是否有更新的 release tag
+- 将本 fork rebase 到最新的上游 tag
+  - 保留本 fork 的增量变更
+  - 当上游实现了本 fork 的增量变更时，直接使用上游的实现
+- 运行相关的后端、前端测试或构建
+- 提交并 force push
+
+需要将本仓库的变更提交到上游时，应当为相关变更创建独立的分支，避免将不必要的变更提交到上游。
+
 ## Setup commands
 
 ### Core
