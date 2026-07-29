@@ -279,6 +279,8 @@ async def _quick_test_mcp_connection(config: dict) -> tuple[bool, str]:
     """Quick test MCP server connectivity"""
     import aiohttp
 
+    from astrbot.core import astrbot_config
+
     cfg = _prepare_config(config.copy())
 
     url = cfg["url"]
@@ -293,7 +295,11 @@ async def _quick_test_mcp_connection(config: dict) -> tuple[bool, str]:
         else:
             raise Exception("MCP connection config missing transport or type field")
 
-        async with aiohttp.ClientSession() as session:
+        trust_env = bool(
+            astrbot_config.get("http_proxy", "")
+            or astrbot_config.get("respect_env_proxy", False)
+        )
+        async with aiohttp.ClientSession(trust_env=trust_env) as session:
             if transport_type == "streamable_http":
                 test_payload = {
                     "jsonrpc": "2.0",

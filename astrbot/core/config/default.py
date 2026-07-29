@@ -247,6 +247,7 @@ DEFAULT_CONFIG = {
     "t2i_endpoint": "",
     "t2i_use_file_service": False,
     "t2i_active_template": "base",
+    "respect_env_proxy": False,
     "http_proxy": "",
     "no_proxy": ["localhost", "127.0.0.1", "::1", "10.*", "192.168.*"],
     "dashboard": {
@@ -3078,6 +3079,9 @@ CONFIG_METADATA_2 = {
                 "type": "list",
                 "items": {"type": "string"},
             },
+            "respect_env_proxy": {
+                "type": "bool",
+            },
             "http_proxy": {
                 "type": "string",
             },
@@ -4485,6 +4489,11 @@ CONFIG_METADATA_3_SYSTEM = {
                         "description": "时区",
                         "type": "string",
                         "hint": "时区设置。请填写 IANA 时区名称, 如 Asia/Shanghai, 为空时使用系统默认时区。所有时区请查看: https://data.iana.org/time-zones/tzdb-2021a/zone1970.tab",
+                    },
+                    "respect_env_proxy": {
+                        "description": "尊重环境代理变量",
+                        "type": "bool",
+                        "hint": "未配置 AstrBot 代理时，保留 HTTP_PROXY、HTTPS_PROXY、ALL_PROXY 和 NO_PROXY 等环境变量。",
                     },
                     "http_proxy": {
                         "description": "代理",

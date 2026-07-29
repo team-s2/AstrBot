@@ -75,23 +75,29 @@ class AstrBotCoreLifecycle:
             # 设置 no_proxy
             no_proxy_list = self.astrbot_config.get("no_proxy", [])
             os.environ["no_proxy"] = ",".join(no_proxy_list)
+        elif self.astrbot_config.get("respect_env_proxy", False):
+            logger.debug("Respecting proxy environment variables")
         else:
             # Clear system proxy variables to avoid interfering with localhost requests.
-            has_system_proxy = "https_proxy" in os.environ or "http_proxy" in os.environ
+            proxy_env_vars = (
+                "http_proxy",
+                "https_proxy",
+                "all_proxy",
+                "HTTP_PROXY",
+                "HTTPS_PROXY",
+                "ALL_PROXY",
+            )
+            has_system_proxy = any(key in os.environ for key in proxy_env_vars)
             if has_system_proxy:
                 logger.warning(
-                    "System http_proxy/https_proxy environment variables were detected, "
+                    "System proxy environment variables were detected, "
                     "but AstrBot has no proxy configured. Clearing the proxy variables "
                     "and setting no_proxy to localhost,127.0.0.1,::1 so local API "
                     "requests bypass the proxy. Configure http_proxy in AstrBot if a "
-                    "proxy is required."
+                    "proxy is required, or enable respect_env_proxy to preserve them."
                 )
-            if "https_proxy" in os.environ:
-                del os.environ["https_proxy"]
-            if "http_proxy" in os.environ:
-                del os.environ["http_proxy"]
-            if "no_proxy" in os.environ:
-                del os.environ["no_proxy"]
+            for key in (*proxy_env_vars, "no_proxy", "NO_PROXY"):
+                os.environ.pop(key, None)
             # Always bypass proxies for loopback addresses used by local APIs.
             os.environ["no_proxy"] = "localhost,127.0.0.1,::1"
             logger.debug("HTTP proxy cleared, no_proxy set to localhost")

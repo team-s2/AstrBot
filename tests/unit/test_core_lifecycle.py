@@ -88,18 +88,58 @@ class TestAstrBotCoreLifecycleInit:
         """Test initialization clears proxy settings when configured."""
         mock_astrbot_config.get = MagicMock(return_value="")
         # Set proxy in environment to test clearing
-        monkeypatch.setenv("http_proxy", "http://old-proxy:8080")
-        monkeypatch.setenv("https_proxy", "http://old-proxy:8080")
+        proxy_variables = {
+            "http_proxy": "http://old-proxy:8080",
+            "https_proxy": "http://old-proxy:8080",
+            "all_proxy": "socks5://old-proxy:1080",
+            "HTTP_PROXY": "http://old-proxy:8080",
+            "HTTPS_PROXY": "http://old-proxy:8080",
+            "ALL_PROXY": "socks5://old-proxy:1080",
+            "no_proxy": "internal.example.com",
+            "NO_PROXY": "internal.example.com",
+        }
+        for key, value in proxy_variables.items():
+            monkeypatch.setenv(key, value)
 
         with patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config):
             lifecycle = AstrBotCoreLifecycle(mock_log_broker, mock_db)
 
             assert lifecycle.log_broker == mock_log_broker
             # Verify proxy environment variables are cleared
-            assert "http_proxy" not in os.environ
-            assert "https_proxy" not in os.environ
+            for key in proxy_variables:
+                if key != "no_proxy":
+                    assert key not in os.environ
             # Verify local APIs always bypass proxies after clearing the environment.
             assert os.environ.get("no_proxy") == "localhost,127.0.0.1,::1"
+
+    def test_init_respects_environment_proxy(
+        self,
+        mock_log_broker,
+        mock_db,
+        mock_astrbot_config,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Test initialization preserves proxy variables when requested."""
+        mock_astrbot_config.get = MagicMock(
+            side_effect=lambda key, default="": {
+                "http_proxy": "",
+                "respect_env_proxy": True,
+            }.get(key, default)
+        )
+        proxy_variables = {
+            "http_proxy": "http://lower-proxy:8080",
+            "HTTP_PROXY": "http://upper-proxy:8080",
+            "NO_PROXY": "localhost,.cluster.local,172.16.0.0/16",
+        }
+        for key, value in proxy_variables.items():
+            monkeypatch.setenv(key, value)
+
+        with patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config):
+            lifecycle = AstrBotCoreLifecycle(mock_log_broker, mock_db)
+
+            assert lifecycle.log_broker == mock_log_broker
+            for key, value in proxy_variables.items():
+                assert os.environ.get(key) == value
 
 
 class TestAstrBotCoreLifecycleStop:
