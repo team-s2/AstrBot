@@ -20,7 +20,7 @@ from tenacity import (
 
 from astrbot import logger
 from astrbot.core.agent.run_context import ContextWrapper
-from astrbot.core.utils.log_pipe import LogPipe
+from astrbot.core.utils.log.pipe import LogPipe
 
 from .run_context import TContext
 from .tool import FunctionTool
@@ -293,7 +293,7 @@ async def _quick_test_mcp_connection(config: dict) -> tuple[bool, str]:
         else:
             raise Exception("MCP connection config missing transport or type field")
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(trust_env=True) as session:
             if transport_type == "streamable_http":
                 test_payload = {
                     "jsonrpc": "2.0",
