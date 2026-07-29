@@ -73,6 +73,9 @@ class AstrBotCoreLifecycle:
             # 设置 no_proxy
             no_proxy_list = self.astrbot_config.get("no_proxy", [])
             os.environ["no_proxy"] = ",".join(no_proxy_list)
+        elif self.astrbot_config.get("respect_env_proxy", False):
+            # Respect system proxy environment variables as-is.
+            logger.debug("Respecting system proxy environment variables")
         else:
             # Clear system proxy variables to avoid interfering with localhost requests.
             has_system_proxy = "https_proxy" in os.environ or "http_proxy" in os.environ
