@@ -1187,15 +1187,20 @@
         "hint": "Timezone setting. Please enter an IANA timezone name, such as Asia/Shanghai. Uses system default timezone when empty. For all timezones, see: [https://data.iana.org/time-zones/tzdb-2021a/zone1970.tab](https://data.iana.org/time-zones/tzdb-2021a/zone1970.tab)"
       },
       "respect_env_proxy": {
-        "description": "Respect Environment Proxy Variables",
-        "hint": "When no AstrBot proxy is configured, preserve environment variables such as HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, and NO_PROXY."
+        "description": "Use Environment Proxy Variables",
+        "hint": "Read proxy settings such as HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, and NO_PROXY from the runtime environment. This is useful when proxies are managed through the operating system, Docker, or Kubernetes."
       },
       "http_proxy": {
-        "description": "HTTP Proxy",
-        "hint": "When enabled, proxy will be set by adding environment variables. Format: `http://ip:port`"
+        "description": "Custom HTTP Proxy",
+        "hint": "Proxy URL for HTTP requests. When set, it overrides the HTTP proxy inherited from the environment. Example: `http://127.0.0.1:7890`."
+      },
+      "https_proxy": {
+        "description": "Custom HTTPS Proxy",
+        "hint": "Proxy URL for HTTPS requests. When set, it overrides the HTTPS proxy inherited from the environment. Example: `http://127.0.0.1:7890`."
       },
       "no_proxy": {
-        "description": "Direct Connection Address List"
+        "description": "Custom Proxy Bypass Addresses",
+        "hint": "Hosts, domains, or addresses that should bypass proxies, one entry per item. When environment proxy variables are enabled, these entries are appended to NO_PROXY. Wildcard, CIDR, and port matching varies between HTTP clients."
       }
     }
   },

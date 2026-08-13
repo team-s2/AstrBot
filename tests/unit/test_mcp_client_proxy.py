@@ -14,6 +14,7 @@ from astrbot.core.agent.mcp_client import _quick_test_mcp_connection
         ({}, False),
         ({"respect_env_proxy": True}, True),
         ({"http_proxy": "http://proxy.example.com:8080"}, True),
+        ({"https_proxy": "http://proxy.example.com:8443"}, True),
     ],
 )
 async def test_mcp_connection_test_proxy_behavior(

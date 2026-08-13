@@ -66,41 +66,52 @@ class AstrBotCoreLifecycle:
         self.temp_dir_cleaner: TempDirCleaner | None = None
         self._default_chat_provider_warning_emitted = False
 
-        # 设置代理
-        proxy_config = self.astrbot_config.get("http_proxy", "")
-        if proxy_config != "":
-            os.environ["https_proxy"] = proxy_config
-            os.environ["http_proxy"] = proxy_config
-            logger.debug(f"Using proxy: {proxy_config}")
-            # 设置 no_proxy
-            no_proxy_list = self.astrbot_config.get("no_proxy", [])
-            os.environ["no_proxy"] = ",".join(no_proxy_list)
-        elif self.astrbot_config.get("respect_env_proxy", False):
-            logger.debug("Respecting proxy environment variables")
-        else:
-            # Clear system proxy variables to avoid interfering with localhost requests.
-            proxy_env_vars = (
-                "http_proxy",
-                "https_proxy",
-                "all_proxy",
-                "HTTP_PROXY",
-                "HTTPS_PROXY",
-                "ALL_PROXY",
-            )
-            has_system_proxy = any(key in os.environ for key in proxy_env_vars)
-            if has_system_proxy:
+        proxy_env_vars = (
+            "http_proxy",
+            "https_proxy",
+            "all_proxy",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "ALL_PROXY",
+        )
+        respect_env_proxy = self.astrbot_config.get("respect_env_proxy", False)
+        if not respect_env_proxy:
+            if any(key in os.environ for key in proxy_env_vars):
                 logger.warning(
-                    "System proxy environment variables were detected, "
-                    "but AstrBot has no proxy configured. Clearing the proxy variables "
-                    "and setting no_proxy to localhost,127.0.0.1,::1 so local API "
-                    "requests bypass the proxy. Configure http_proxy in AstrBot if a "
-                    "proxy is required, or enable respect_env_proxy to preserve them."
+                    "System proxy environment variables were detected but disabled by "
+                    "AstrBot proxy settings."
                 )
             for key in (*proxy_env_vars, "no_proxy", "NO_PROXY"):
                 os.environ.pop(key, None)
-            # Always bypass proxies for loopback addresses used by local APIs.
-            os.environ["no_proxy"] = "localhost,127.0.0.1,::1"
-            logger.debug("HTTP proxy cleared, no_proxy set to localhost")
+
+        http_proxy = self.astrbot_config.get("http_proxy", "")
+        https_proxy = self.astrbot_config.get("https_proxy", "")
+        if http_proxy:
+            os.environ["http_proxy"] = http_proxy
+            os.environ["HTTP_PROXY"] = http_proxy
+        if https_proxy:
+            os.environ["https_proxy"] = https_proxy
+            os.environ["HTTPS_PROXY"] = https_proxy
+
+        no_proxy_values = []
+        if respect_env_proxy:
+            for key in ("no_proxy", "NO_PROXY"):
+                no_proxy_values.extend(
+                    value.strip()
+                    for value in os.environ.get(key, "").split(",")
+                    if value.strip()
+                )
+        no_proxy_values.extend(self.astrbot_config.get("no_proxy", []))
+        no_proxy_values.extend(("localhost", "127.0.0.1", "::1"))
+        effective_no_proxy = ",".join(dict.fromkeys(no_proxy_values))
+        os.environ["no_proxy"] = effective_no_proxy
+        os.environ["NO_PROXY"] = effective_no_proxy
+        logger.debug(
+            "Proxy settings applied: environment=%s, custom_http=%s, custom_https=%s",
+            respect_env_proxy,
+            bool(http_proxy),
+            bool(https_proxy),
+        )
 
     async def _init_or_reload_subagent_orchestrator(self) -> None:
         """Create (if needed) and reload the subagent orchestrator from config.

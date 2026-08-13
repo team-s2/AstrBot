@@ -297,6 +297,7 @@ async def _quick_test_mcp_connection(config: dict) -> tuple[bool, str]:
 
         trust_env = bool(
             astrbot_config.get("http_proxy", "")
+            or astrbot_config.get("https_proxy", "")
             or astrbot_config.get("respect_env_proxy", False)
         )
         async with aiohttp.ClientSession(trust_env=trust_env) as session:

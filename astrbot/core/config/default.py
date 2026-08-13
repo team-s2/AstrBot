@@ -249,7 +249,8 @@ DEFAULT_CONFIG = {
     "t2i_active_template": "base",
     "respect_env_proxy": False,
     "http_proxy": "",
-    "no_proxy": ["localhost", "127.0.0.1", "::1", "10.*", "192.168.*"],
+    "https_proxy": "",
+    "no_proxy": [],
     "dashboard": {
         "enable": True,
         "username": "astrbot",
@@ -3080,16 +3081,23 @@ CONFIG_METADATA_2 = {
                 "items": {"type": "string"},
             },
             "respect_env_proxy": {
+                "description": "使用环境代理变量",
                 "type": "bool",
+                "hint": "读取运行环境中的 HTTP_PROXY、HTTPS_PROXY、ALL_PROXY 和 NO_PROXY 等代理设置。",
             },
             "http_proxy": {
+                "description": "自定义 HTTP 代理",
+                "type": "string",
+            },
+            "https_proxy": {
+                "description": "自定义 HTTPS 代理",
                 "type": "string",
             },
             "no_proxy": {
-                "description": "直连地址列表",
+                "description": "自定义直连地址",
                 "type": "list",
                 "items": {"type": "string"},
-                "hint": "在此处添加不希望通过代理访问的地址，例如内部服务地址。回车添加，可添加多个，如未设置代理请忽略此配置",
+                "hint": "这些地址会追加到环境中的 NO_PROXY，不会替换已有规则。",
             },
             "timezone": {
                 "type": "string",
@@ -4491,19 +4499,25 @@ CONFIG_METADATA_3_SYSTEM = {
                         "hint": "时区设置。请填写 IANA 时区名称, 如 Asia/Shanghai, 为空时使用系统默认时区。所有时区请查看: https://data.iana.org/time-zones/tzdb-2021a/zone1970.tab",
                     },
                     "respect_env_proxy": {
-                        "description": "尊重环境代理变量",
+                        "description": "使用环境代理变量",
                         "type": "bool",
-                        "hint": "未配置 AstrBot 代理时，保留 HTTP_PROXY、HTTPS_PROXY、ALL_PROXY 和 NO_PROXY 等环境变量。",
+                        "hint": "读取运行环境中的 HTTP_PROXY、HTTPS_PROXY、ALL_PROXY 和 NO_PROXY 等代理设置。适用于通过系统、Docker 或 Kubernetes 统一配置代理的场景。",
                     },
                     "http_proxy": {
-                        "description": "代理",
+                        "description": "自定义 HTTP 代理",
                         "type": "string",
-                        "hint": "启用后，会以添加环境变量的方式设置代理。支持 http://、https://、socks5:// 格式，例如：http://127.0.0.1:7890 或 socks5://127.0.0.1:7891",
+                        "hint": "用于 HTTP 请求的代理地址。非空时覆盖环境中的 HTTP 代理设置，例如：http://127.0.0.1:7890。",
+                    },
+                    "https_proxy": {
+                        "description": "自定义 HTTPS 代理",
+                        "type": "string",
+                        "hint": "用于 HTTPS 请求的代理地址。非空时覆盖环境中的 HTTPS 代理设置，例如：http://127.0.0.1:7890。",
                     },
                     "no_proxy": {
-                        "description": "直连地址列表",
+                        "description": "自定义直连地址",
                         "type": "list",
                         "items": {"type": "string"},
+                        "hint": "不经过代理的主机、域名或地址，每项填写一个。使用环境代理变量时，这些地址会追加到环境中的 NO_PROXY。不同网络库对通配符、CIDR 和端口规则的支持可能不同。",
                     },
                 },
             },
