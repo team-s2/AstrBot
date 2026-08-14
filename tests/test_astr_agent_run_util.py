@@ -52,6 +52,31 @@ class _MalformedStreamingErrorRunner(_StreamingErrorRunner):
         yield AgentResponse(type="err", data={})
 
 
+class _NonStreamingMultiStepRunner:
+    """Non-streaming Agent runner that emits text across two steps."""
+
+    streaming = False
+    req = None
+
+    def __init__(self) -> None:
+        self.step_index = 0
+        event = _FakeEvent()
+        event.trace = SimpleNamespace(record=lambda *_args, **_kwargs: None)
+        event.set_result = lambda _result: None
+        event.clear_result = lambda: None
+        self.run_context = SimpleNamespace(context=SimpleNamespace(event=event))
+
+    async def step(self):
+        self.step_index += 1
+        yield AgentResponse(
+            type="llm_result",
+            data={"chain": MessageChain().message(f"step-{self.step_index}")},
+        )
+
+    def done(self) -> bool:
+        return self.step_index == 2
+
+
 @pytest.mark.asyncio
 async def test_run_agent_forwards_streaming_provider_error():
     error_text = (
@@ -73,6 +98,24 @@ async def test_run_agent_replaces_malformed_streaming_provider_error():
 
     assert len(chains) == 1
     assert chains[0].get_plain_text() == "Error occurred during AI execution."
+
+
+@pytest.mark.asyncio
+async def test_run_agent_buffers_non_streaming_steps_in_general_fallback_mode():
+    """Buffer non-streaming Agent text despite an unsupported-platform fallback."""
+    runner = _NonStreamingMultiStepRunner()
+
+    chains = [
+        chain
+        async for chain in run_agent(
+            runner,
+            stream_to_general=True,
+            buffer_intermediate_messages=True,
+        )
+    ]
+
+    assert len(chains) == 1
+    assert chains[0].get_plain_text() == "step-1 step-2"
 
 
 @pytest.mark.asyncio
