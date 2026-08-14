@@ -89,14 +89,19 @@ def _build_tool_result_status_message(
 
 def _should_buffer_llm_result(
     buffer_intermediate_messages: bool,
-    stream_to_general: bool,
     agent_runner: AgentRunner,
 ) -> bool:
-    return (
-        buffer_intermediate_messages
-        and not stream_to_general
-        and not agent_runner.streaming
-    )
+    """Determine whether non-streaming Agent text should be buffered.
+
+    Args:
+        buffer_intermediate_messages: Whether Agent intermediate text buffering is
+            enabled.
+        agent_runner: Agent runner used for the current request.
+
+    Returns:
+        Whether LLM text should be buffered until the Agent finishes.
+    """
+    return buffer_intermediate_messages and not agent_runner.streaming
 
 
 def _merge_buffered_llm_chains(
@@ -127,7 +132,6 @@ async def run_agent(
     buffered_llm_chains: list[MessageChain] = []
     can_buffer_llm_result = _should_buffer_llm_result(
         buffer_intermediate_messages,
-        stream_to_general,
         agent_runner,
     )
     while step_idx < max_step + 1:
