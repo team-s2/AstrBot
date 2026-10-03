@@ -15,6 +15,7 @@ from .conversations import router as conversations_router
 from .cron import router as cron_router
 from .extensions import router as extensions_router
 from .files import router as files_router
+from .github_oauth import router as github_oauth_router
 from .knowledge_bases import router as knowledge_bases_router
 from .live_chat import router as live_chat_router
 from .logs import router as logs_router
@@ -38,6 +39,7 @@ def build_api_router() -> APIRouter:
     router = APIRouter(prefix=API_V1_PREFIX)
     child_routers = (
         auth_router,
+        github_oauth_router,
         backups_router,
         config_profiles_router,
         api_keys_router,

@@ -51,6 +51,7 @@ from astrbot.dashboard.password_state import (
     set_password_change_required,
     set_password_storage_upgraded,
 )
+from astrbot.dashboard.services.github_oauth import GitHubOAuth, password_login_enabled
 
 CHAT_ADMIN_SCOPE = "chat:admin"
 CONFIG_EDIT_ADMIN_SCOPE = "config:edit_admin"
@@ -125,9 +126,10 @@ class AuthService:
         self.db = db
         self.config = config
         self.demo_mode = demo_mode
+        self.github_oauth = GitHubOAuth()
 
     async def setup_status(self) -> AuthServiceResult:
-        if is_desktop_session_auth_enabled():
+        if is_desktop_session_auth_enabled() or not password_login_enabled():
             return AuthServiceResult(
                 data={
                     "setup_required": False,
@@ -151,6 +153,8 @@ class AuthService:
         provided_secret: str | None,
         client_host: str | None,
     ) -> AuthServiceResult:
+        if not password_login_enabled():
+            return self.error("Password login is disabled", status_code=403)
         if not is_desktop_session_auth_enabled() or not is_loopback_client_host(
             client_host
         ):
@@ -223,6 +227,8 @@ class AuthService:
         )
 
     async def setup(self, post_data: object) -> AuthServiceResult:
+        if not password_login_enabled():
+            return self.error("Password login is disabled", status_code=403)
         if not self.can_skip_default_password_auth():
             return self.error("Setup without password is not enabled")
         if not await self.is_setup_required():
@@ -235,6 +241,8 @@ class AuthService:
         post_data: object,
         authenticated_username,
     ) -> AuthServiceResult:
+        if not password_login_enabled():
+            return self.error("Password login is disabled", status_code=403)
         if not await self.is_setup_required():
             return self.error("Setup is not required")
         if not isinstance(authenticated_username, str):
@@ -287,6 +295,8 @@ class AuthService:
         *,
         trusted_device_cookie_token: str,
     ) -> AuthServiceResult:
+        if not password_login_enabled():
+            return self.error("Password login is disabled", status_code=403)
         username = self.config["dashboard"]["username"]
         storage_upgraded = await is_password_storage_upgraded(self.db, self.config)
         password = get_dashboard_password_hash(self.config, upgraded=storage_upgraded)
@@ -445,10 +455,14 @@ class AuthService:
         return AuthServiceResult(message="Updated account successfully")
 
     def generate_jwt(self, username: str, *, auth_source: str = "password"):
+        lifetime = (
+            datetime.timedelta(hours=1)
+            if auth_source == "github"
+            else datetime.timedelta(days=7)
+        )
         payload = {
             "username": username,
-            "exp": datetime.datetime.now(datetime.timezone.utc)
-            + datetime.timedelta(days=7),
+            "exp": datetime.datetime.now(datetime.timezone.utc) + lifetime,
         }
         if auth_source != "password":
             payload["auth_source"] = auth_source

@@ -21,6 +21,7 @@ from astrbot.core.config.default import (
     DEFAULT_VALUE_MAP,
 )
 from astrbot.core.config.i18n_utils import ConfigMetadataI18n
+from astrbot.core.config.provisioning import require_unmanaged_providers
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.platform.register import platform_cls_map, platform_registry
@@ -1431,6 +1432,7 @@ class ProviderConfigService:
         return {"provider_source": copy.deepcopy(source)}
 
     async def upsert_provider_source(self, source_id: str, config: dict) -> None:
+        require_unmanaged_providers()
         config = copy.deepcopy(config)
         next_source_id = str(config.get("id") or source_id).strip()
         if not next_source_id:
@@ -1462,6 +1464,7 @@ class ProviderConfigService:
         self.provider_manager.provider_sources_config = sources
 
     async def delete_provider_source(self, source_id: str) -> None:
+        require_unmanaged_providers()
         sources = self.config.get("provider_sources", [])
         next_sources = [source for source in sources if source.get("id") != source_id]
         if len(next_sources) == len(sources):
@@ -1734,6 +1737,7 @@ class ProviderConfigService:
         return {"provider": provider_response, "model_metadata": model_metadata}
 
     async def create_provider(self, config: dict, source_id: str | None = None) -> None:
+        require_unmanaged_providers()
         config = copy.deepcopy(config)
         if source_id:
             config["provider_source_id"] = source_id
@@ -1741,6 +1745,7 @@ class ProviderConfigService:
         await self.provider_manager.create_provider(config)
 
     async def update_provider(self, provider_id: str, config: dict) -> None:
+        require_unmanaged_providers()
         config = copy.deepcopy(config)
         if not config.get("id"):
             config["id"] = provider_id
@@ -1748,6 +1753,7 @@ class ProviderConfigService:
         await self.provider_manager.update_provider(provider_id, config)
 
     async def set_provider_enabled(self, provider_id: str, enabled: bool) -> None:
+        require_unmanaged_providers()
         provider = self.provider_manager.get_provider_config_by_id(provider_id)
         if provider is None:
             raise ValueError(f"Provider {provider_id} not found")
@@ -1755,6 +1761,7 @@ class ProviderConfigService:
         await self.provider_manager.update_provider(provider_id, provider)
 
     async def delete_provider(self, provider_id: str) -> None:
+        require_unmanaged_providers()
         await self.provider_manager.delete_provider(provider_id=provider_id)
 
     async def create_provider_from_dashboard_payload(self, payload: object) -> str:

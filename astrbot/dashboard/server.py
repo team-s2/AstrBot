@@ -27,6 +27,10 @@ from astrbot.dashboard.asgi_runtime import (
     FastAPIAppAdapter,
 )
 from astrbot.dashboard.responses import error
+from astrbot.dashboard.services.github_oauth import (
+    password_login_enabled,
+    validate_login_source,
+)
 
 from .api.app import create_dashboard_asgi_app
 from .plugin_page_auth import PluginPageAuth
@@ -44,6 +48,8 @@ _RATE_LIMITED_ENDPOINTS: frozenset = frozenset(
         "/api/auth/login",
         "/api/v1/auth/login",
         "/api/v1/auth/desktop-session",
+        "/api/v1/auth/github/login",
+        "/api/v1/auth/github/callback",
     }
 )
 
@@ -293,6 +299,11 @@ class AstrBotDashboard:
         """
         try:
             payload = jwt.decode(token, self._jwt_secret, algorithms=["HS256"])
+            if not (
+                PluginPageAuth.is_asset_token(payload)
+                and PluginPageAuth.is_scope_valid(payload, path)
+            ):
+                validate_login_source(payload)
         except jwt.ExpiredSignatureError:
             return None, "Token 过期"
         except jwt.InvalidTokenError:
@@ -439,6 +450,8 @@ class AstrBotDashboard:
         self._jwt_secret = self.config["dashboard"]["jwt_secret"]
 
     def _build_dashboard_credentials_display(self) -> str:
+        if not password_login_enabled():
+            return "   ➜  Sign in with GitHub (password login disabled)\n ✨✨✨\n"
         username = self.config["dashboard"].get("username", "astrbot")
         generated_password = getattr(self.config, "_generated_dashboard_password", None)
         if not generated_password:

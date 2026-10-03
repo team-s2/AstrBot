@@ -26,6 +26,7 @@ from astrbot.core.utils.astrbot_path import (
     get_astrbot_backups_path,
     get_astrbot_data_path,
 )
+from astrbot.dashboard.services.github_oauth import validate_login_source
 
 CHUNK_SIZE = 1024 * 1024
 UPLOAD_EXPIRE_SECONDS = 3600
@@ -598,7 +599,7 @@ class BackupService:
             raise BackupServiceError("服务器配置错误")
 
         try:
-            jwt.decode(
+            payload = jwt.decode(
                 token,
                 jwt_secret,
                 algorithms=["HS256"],
@@ -608,6 +609,7 @@ class BackupService:
                     "verify_exp": True,
                 },
             )
+            validate_login_source(payload)
         except jwt.ExpiredSignatureError as exc:
             raise BackupServiceError("Token 已过期，请刷新页面后重试") from exc
         except jwt.InvalidTokenError as exc:

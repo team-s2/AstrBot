@@ -97,6 +97,62 @@ tags:
   - name: Webhooks
 
 paths:
+  /api/v1/auth/github/options:
+    get:
+      tags: [Auth]
+      summary: Get enabled dashboard login methods
+      operationId: getGitHubLoginOptions
+      security: []
+      responses:
+        "200":
+          description: Login options
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [enabled, password_login_enabled]
+                properties:
+                  enabled:
+                    type: boolean
+                  password_login_enabled:
+                    type: boolean
+
+  /api/v1/auth/github/login:
+    get:
+      tags: [Auth]
+      summary: Start browser-bound GitHub OAuth with PKCE
+      operationId: startGitHubLogin
+      security: []
+      responses:
+        "302":
+          description: Redirect to GitHub
+        "404":
+          description: OAuth disabled
+        "429":
+          description: Too many pending logins
+
+  /api/v1/auth/github/callback:
+    get:
+      tags: [Auth]
+      summary: Verify OAuth state and GitHub access allowlists
+      operationId: completeGitHubLogin
+      security: []
+      responses:
+        "303":
+          description: Redirect to dashboard login with a short-lived HttpOnly ticket
+
+  /api/v1/auth/github/session:
+    post:
+      tags: [Auth]
+      summary: Exchange a single-use browser ticket for an AstrBot session
+      operationId: exchangeGitHubSession
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/Ok"
+        "401":
+          description: Ticket invalid or expired
+
   /api/v1/auth/login:
     post:
       tags: [Auth]

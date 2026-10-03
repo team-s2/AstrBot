@@ -18,6 +18,7 @@ from astrbot.core.utils.auth_password import (
 from astrbot.core.utils.migra_helper import migrate_config_on_load
 
 from .default import DEFAULT_CONFIG, DEFAULT_VALUE_MAP
+from .provisioning import get_provisioning
 
 ASTRBOT_CONFIG_PATH = os.path.join(get_astrbot_data_path(), "cmd_config.json")
 DASHBOARD_INITIAL_PASSWORD_ENV = "ASTRBOT_DASHBOARD_INITIAL_PASSWORD"
@@ -49,6 +50,8 @@ class AstrBotConfig(dict):
         schema: dict | None = None,
     ) -> None:
         super().__init__()
+        if config_path == ASTRBOT_CONFIG_PATH:
+            get_provisioning()  # Validate before creating or migrating persisted state.
 
         # 调用父类的 __setattr__ 方法，防止保存配置时将此属性写入配置文件
         object.__setattr__(self, "config_path", config_path)
@@ -109,6 +112,21 @@ class AstrBotConfig(dict):
             self.save_config()
 
         self.update(conf)
+
+        if config_path == ASTRBOT_CONFIG_PATH:
+            providers = get_provisioning().providers
+            if providers is not None:
+                # Keep the original disk values so runtime saves never persist YAML secrets.
+                object.__setattr__(
+                    self,
+                    "_provisioning_original",
+                    {
+                        key: copy.deepcopy(self.get(key, []))
+                        for key in ("provider_sources", "provider")
+                    },
+                )
+                self["provider_sources"] = copy.deepcopy(providers.sources)
+                self["provider"] = copy.deepcopy(providers.models)
 
     def _reset_generated_dashboard_password(self, conf: dict) -> None:
         generated_password = self._resolve_initial_dashboard_password()
@@ -306,6 +324,9 @@ class AstrBotConfig(dict):
             if replace_config:
                 self.update(replace_config)
             snapshot = copy.deepcopy(dict(self))
+            original = self.__dict__.get("_provisioning_original")
+            if original is not None:
+                snapshot.update(copy.deepcopy(original))
             revision = self._save_revision + 1
             object.__setattr__(self, "_save_revision", revision)
         return snapshot, revision

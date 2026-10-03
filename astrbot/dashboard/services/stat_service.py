@@ -42,6 +42,7 @@ from astrbot.dashboard.password_state import (
     is_password_change_required,
     is_password_storage_upgraded,
 )
+from astrbot.dashboard.services.github_oauth import password_login_enabled
 
 
 class StatServiceError(Exception):
@@ -77,7 +78,7 @@ class StatService:
         return {"hours": hours, "minutes": minutes, "seconds": seconds}
 
     async def is_default_cred(self):
-        if is_desktop_session_auth_enabled():
+        if is_desktop_session_auth_enabled() or not password_login_enabled():
             return False
         password_change_required = await is_password_change_required(
             self.db_helper,
@@ -100,7 +101,7 @@ class StatService:
         ) and not DEMO_MODE
 
     async def get_version(self) -> dict:
-        if is_desktop_session_auth_enabled():
+        if is_desktop_session_auth_enabled() or not password_login_enabled():
             return {
                 "version": VERSION,
                 "dashboard_version": await get_dashboard_version(),

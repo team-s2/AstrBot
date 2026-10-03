@@ -584,3 +584,7 @@ AstrBot API 的基础地址。用于文件服务和插件回调等功能。如 `
 ### `plugin_set`
 
 已启用的插件列表。`*` 表示启用所有可用的插件。默认为 `["*"]`。
+
+## YAML 声明式配置
+
+GitHub 登录和模型提供商的声明式管理请参阅 [YAML 配置](../config/provisioning.md)。

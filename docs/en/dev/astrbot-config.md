@@ -584,3 +584,7 @@ Default knowledge base name. Used for RAG. If empty, no knowledge base is used.
 ### `plugin_set`
 
 List of enabled plugins. `*` means all available plugins are enabled. Default is `["*"]`.
+
+## YAML provisioning
+
+For GitHub login and declarative provider sources/models, see [YAML provisioning](../config/provisioning.md).
