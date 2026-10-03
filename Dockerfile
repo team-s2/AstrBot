@@ -12,12 +12,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libavcodec-extra \
     fonts-noto-cjk \
+    libegl1 \
+    libgl1 \
     curl \
     gnupg \
     git \
     ripgrep \
+    docker-cli \
+    docker-compose \
+    docker-buildx \
+    chromium \
     && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
+    && npm install -g chrome-devtools-mcp \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
