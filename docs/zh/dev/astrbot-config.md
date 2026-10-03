@@ -114,7 +114,8 @@ AstrBot 默认配置如下：
     "t2i_use_file_service": False,
     "t2i_active_template": "base",
     "http_proxy": "",
-    "no_proxy": ["localhost", "127.0.0.1", "::1"],
+    "https_proxy": "",
+    "no_proxy": [],
     "dashboard": {
         "enable": True,
         "username": "astrbot",
@@ -493,11 +494,15 @@ AstrBot API 的地址。用于渲染 Markdown 图片。当 `t2i_strategy` 为 `r
 
 ### `http_proxy`
 
-HTTP 代理。如 `http://localhost:7890`。Docker 部署时请填写 AstrBot 容器能访问到的地址，见 [Docker 部署](/deploy/astrbot/docker.md)。
+HTTP 请求的自定义代理。设置后会覆盖继承的 HTTP 代理。如 `http://localhost:7890`。Docker 部署时请填写 AstrBot 容器能访问到的地址，见 [Docker 部署](/deploy/astrbot/docker.md)。
+
+### `https_proxy`
+
+HTTPS 请求的自定义代理。设置后会覆盖继承的 HTTPS 代理。如 `http://localhost:7890`。Docker 部署时请填写 AstrBot 容器能访问到的地址，见 [Docker 部署](/deploy/astrbot/docker.md)。
 
 ### `no_proxy`
 
-不使用代理的地址列表。如 `["localhost", "127.0.0.1"]`。
+不使用代理的附加地址列表。这些地址会追加到继承的 `NO_PROXY`。如 `["localhost", "127.0.0.1"]`。
 
 ### `dashboard`
 

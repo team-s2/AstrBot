@@ -60,12 +60,16 @@ class TestAstrBotCoreLifecycleInit:
         mock_astrbot_config.get = MagicMock(
             side_effect=lambda key, default="": {
                 "http_proxy": "http://proxy.example.com:8080",
+                "https_proxy": "http://secure-proxy.example.com:8443",
                 "no_proxy": ["localhost", "127.0.0.1"],
             }.get(key, default)
         )
         monkeypatch.delenv("http_proxy", raising=False)
         monkeypatch.delenv("https_proxy", raising=False)
+        monkeypatch.delenv("HTTP_PROXY", raising=False)
+        monkeypatch.delenv("HTTPS_PROXY", raising=False)
         monkeypatch.delenv("no_proxy", raising=False)
+        monkeypatch.delenv("NO_PROXY", raising=False)
 
         with patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config):
             lifecycle = AstrBotCoreLifecycle(mock_log_broker, mock_db)
@@ -74,9 +78,16 @@ class TestAstrBotCoreLifecycleInit:
             assert lifecycle.db == mock_db
             # Verify proxy environment variables are set
             assert os.environ.get("http_proxy") == "http://proxy.example.com:8080"
-            assert os.environ.get("https_proxy") == "http://proxy.example.com:8080"
+            assert os.environ.get("HTTP_PROXY") == "http://proxy.example.com:8080"
+            assert (
+                os.environ.get("https_proxy") == "http://secure-proxy.example.com:8443"
+            )
+            assert (
+                os.environ.get("HTTPS_PROXY") == "http://secure-proxy.example.com:8443"
+            )
             assert "localhost" in os.environ.get("no_proxy", "")
             assert "127.0.0.1" in os.environ.get("no_proxy", "")
+            assert os.environ.get("NO_PROXY") == os.environ.get("no_proxy")
 
     def test_init_clears_proxy(
         self,
@@ -88,18 +99,98 @@ class TestAstrBotCoreLifecycleInit:
         """Test initialization clears proxy settings when configured."""
         mock_astrbot_config.get = MagicMock(return_value="")
         # Set proxy in environment to test clearing
-        monkeypatch.setenv("http_proxy", "http://old-proxy:8080")
-        monkeypatch.setenv("https_proxy", "http://old-proxy:8080")
+        proxy_variables = {
+            "http_proxy": "http://old-proxy:8080",
+            "https_proxy": "http://old-proxy:8080",
+            "all_proxy": "socks5://old-proxy:1080",
+            "HTTP_PROXY": "http://old-proxy:8080",
+            "HTTPS_PROXY": "http://old-proxy:8080",
+            "ALL_PROXY": "socks5://old-proxy:1080",
+            "no_proxy": "internal.example.com",
+            "NO_PROXY": "internal.example.com",
+        }
+        for key, value in proxy_variables.items():
+            monkeypatch.setenv(key, value)
 
         with patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config):
             lifecycle = AstrBotCoreLifecycle(mock_log_broker, mock_db)
 
             assert lifecycle.log_broker == mock_log_broker
             # Verify proxy environment variables are cleared
-            assert "http_proxy" not in os.environ
-            assert "https_proxy" not in os.environ
+            for key in proxy_variables:
+                if key not in ("no_proxy", "NO_PROXY"):
+                    assert key not in os.environ
             # Verify local APIs always bypass proxies after clearing the environment.
             assert os.environ.get("no_proxy") == "localhost,127.0.0.1,::1"
+            assert os.environ.get("NO_PROXY") == "localhost,127.0.0.1,::1"
+
+    def test_init_respects_environment_proxy(
+        self,
+        mock_log_broker,
+        mock_db,
+        mock_astrbot_config,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Test initialization preserves proxy variables when requested."""
+        mock_astrbot_config.get = MagicMock(
+            side_effect=lambda key, default="": {
+                "http_proxy": "",
+                "respect_env_proxy": True,
+            }.get(key, default)
+        )
+        proxy_variables = {
+            "http_proxy": "http://lower-proxy:8080",
+            "HTTP_PROXY": "http://upper-proxy:8080",
+            "NO_PROXY": "localhost,.cluster.local,172.16.0.0/16",
+        }
+        monkeypatch.delenv("no_proxy", raising=False)
+        for key, value in proxy_variables.items():
+            monkeypatch.setenv(key, value)
+
+        with patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config):
+            lifecycle = AstrBotCoreLifecycle(mock_log_broker, mock_db)
+
+            assert lifecycle.log_broker == mock_log_broker
+            assert os.environ.get("http_proxy") == proxy_variables["http_proxy"]
+            assert os.environ.get("HTTP_PROXY") == proxy_variables["HTTP_PROXY"]
+            assert os.environ.get("no_proxy") == (
+                "localhost,.cluster.local,172.16.0.0/16,127.0.0.1,::1"
+            )
+            assert os.environ.get("NO_PROXY") == os.environ.get("no_proxy")
+
+    def test_init_overrides_proxies_and_extends_environment_no_proxy(
+        self,
+        mock_log_broker,
+        mock_db,
+        mock_astrbot_config,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Test custom proxies override matching environment proxy settings."""
+        mock_astrbot_config.get = MagicMock(
+            side_effect=lambda key, default="": {
+                "respect_env_proxy": True,
+                "http_proxy": "http://custom-http:8080",
+                "https_proxy": "http://custom-https:8443",
+                "no_proxy": ["api.internal", "localhost"],
+            }.get(key, default)
+        )
+        monkeypatch.setenv("http_proxy", "http://environment-http:8080")
+        monkeypatch.setenv("HTTPS_PROXY", "http://environment-https:8443")
+        monkeypatch.setenv("no_proxy", ".cluster.local,10.0.0.0/8")
+        monkeypatch.setenv("NO_PROXY", "service.internal,.cluster.local")
+
+        with patch("astrbot.core.core_lifecycle.astrbot_config", mock_astrbot_config):
+            AstrBotCoreLifecycle(mock_log_broker, mock_db)
+
+        assert os.environ.get("http_proxy") == "http://custom-http:8080"
+        assert os.environ.get("HTTP_PROXY") == "http://custom-http:8080"
+        assert os.environ.get("https_proxy") == "http://custom-https:8443"
+        assert os.environ.get("HTTPS_PROXY") == "http://custom-https:8443"
+        assert os.environ.get("no_proxy") == (
+            ".cluster.local,10.0.0.0/8,service.internal,api.internal,"
+            "localhost,127.0.0.1,::1"
+        )
+        assert os.environ.get("NO_PROXY") == os.environ.get("no_proxy")
 
 
 class TestAstrBotCoreLifecycleStop:

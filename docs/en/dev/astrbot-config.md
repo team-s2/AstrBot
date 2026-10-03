@@ -114,7 +114,8 @@ The default AstrBot configuration is as follows:
     "t2i_use_file_service": False,
     "t2i_active_template": "base",
     "http_proxy": "",
-    "no_proxy": ["localhost", "127.0.0.1", "::1"],
+    "https_proxy": "",
+    "no_proxy": [],
     "dashboard": {
         "enable": True,
         "username": "astrbot",
@@ -493,11 +494,15 @@ Whether to enable the file service. Default is `false`. When enabled, the bot pr
 
 ### `http_proxy`
 
-HTTP proxy. E.g., `http://localhost:7890`. When AstrBot runs in Docker, use an address reachable from the AstrBot container. See [Deploy with Docker](/en/deploy/astrbot/docker.md).
+Custom proxy for HTTP requests. It overrides the inherited HTTP proxy when set. E.g., `http://localhost:7890`. When AstrBot runs in Docker, use an address reachable from the AstrBot container. See [Deploy with Docker](/en/deploy/astrbot/docker.md).
+
+### `https_proxy`
+
+Custom proxy for HTTPS requests. It overrides the inherited HTTPS proxy when set. E.g., `http://localhost:7890`. When AstrBot runs in Docker, use an address reachable from the AstrBot container. See [Deploy with Docker](/en/deploy/astrbot/docker.md).
 
 ### `no_proxy`
 
-List of addresses that bypass the proxy. E.g., `["localhost", "127.0.0.1"]`.
+Additional addresses that bypass proxies. These entries are appended to inherited `NO_PROXY` values. E.g., `["localhost", "127.0.0.1"]`.
 
 ### `dashboard`
 
