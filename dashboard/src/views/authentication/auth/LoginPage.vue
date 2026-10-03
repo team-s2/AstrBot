@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { httpClient } from '@/api/http';
 import AuthLogin from '../authForms/AuthLogin.vue';
 import LanguageSwitcher from '@/components/shared/LanguageSwitcher.vue';
 import { computed, onMounted, ref } from 'vue';
@@ -10,6 +11,9 @@ import { useTheme } from 'vuetify';
 import { authApi, publicApi, type PublicVersionData } from '@/api/v1';
 
 const cardVisible = ref(false);
+const githubEnabled = ref(false);
+const passwordLoginEnabled = ref(false);
+const oauthError = ref('');
 const router = useRouter();
 const authStore = useAuthStore();
 const customizer = useCustomizerStore();
@@ -129,6 +133,29 @@ onMounted(async () => {
       }
     });
 
+  const oauthResult = new URLSearchParams(window.location.search).get('oauth');
+  if (oauthResult) {
+    window.history.replaceState({}, '', window.location.pathname);
+    if (oauthResult === 'complete') {
+      try {
+        const response = await httpClient.post('/api/v1/auth/github/session');
+        await authStore.finishAuthenticatedSession(response.data.data);
+        return;
+      } catch {
+        oauthError.value = t('github.error');
+      }
+    } else {
+      oauthError.value = t('github.error');
+    }
+  }
+  try {
+    const options = await httpClient.get('/api/v1/auth/github/options');
+    githubEnabled.value = options.data.enabled;
+    passwordLoginEnabled.value = options.data.password_login_enabled;
+  } catch {
+    oauthError.value = t('github.unavailable');
+  }
+
   // 检查用户是否已登录，如果已登录则重定向
   if (authStore.has_token()) {
     const onboardingCompleted = await authStore.checkOnboardingCompleted();
@@ -225,7 +252,11 @@ onMounted(async () => {
         <div v-if="authLoginRef?.stage !== 'totp' && authLoginRef?.stage !== 'recovery'" class="mt-2 ml-2" style="font-size: 14px; color: grey;">{{ t('logo.subtitle') }}</div>
       </v-card-title>
       <v-card-text>
-        <AuthLogin ref="authLoginRef" />
+        <v-alert v-if="oauthError" type="error" variant="tonal" class="mb-4">{{ oauthError }}</v-alert>
+        <v-btn v-if="githubEnabled" block color="primary" href="/api/v1/auth/github/login" class="my-4">
+          {{ t('github.login') }}
+        </v-btn>
+        <AuthLogin v-if="passwordLoginEnabled" ref="authLoginRef" />
       </v-card-text>
       <div v-if="versionItems.length" class="login-version-info">
         <span v-for="item in versionItems" :key="item.key" class="login-version-item">

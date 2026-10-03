@@ -748,6 +748,17 @@ export type UpdateRequest = {
     progress_id?: string;
 };
 
+export type GetGitHubLoginOptionsResponse = ({
+    enabled: boolean;
+    password_login_enabled: boolean;
+});
+
+export type GetGitHubLoginOptionsError = unknown;
+
+export type ExchangeGitHubSessionResponse = (SuccessEnvelope);
+
+export type ExchangeGitHubSessionError = (unknown);
+
 export type LoginData = {
     body: LoginRequest;
 };

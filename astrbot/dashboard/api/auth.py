@@ -26,6 +26,7 @@ from astrbot.dashboard.services.auth_service import (
     AuthService,
     AuthServiceResult,
 )
+from astrbot.dashboard.services.github_oauth import validate_login_source
 
 DESKTOP_SESSION_HEADER = "X-AstrBot-Desktop-Session"
 
@@ -118,6 +119,7 @@ async def require_dashboard_user(request: Request) -> str:
             request.app.state.jwt_secret,
             algorithms=["HS256"],
         )
+        validate_login_source(payload)
     except jwt.ExpiredSignatureError as exc:
         raise ApiError("Token 过期", status_code=401) from exc
     except jwt.InvalidTokenError as exc:
@@ -178,6 +180,7 @@ async def require_scope(request: Request, scope: str) -> AuthContext:
             request.app.state.jwt_secret,
             algorithms=["HS256"],
         )
+        validate_login_source(payload)
     except jwt.ExpiredSignatureError as exc:
         raise ApiError("Token expired", status_code=401) from exc
     except jwt.InvalidTokenError as exc:

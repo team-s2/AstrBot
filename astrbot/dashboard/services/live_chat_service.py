@@ -34,6 +34,7 @@ from astrbot.dashboard.services.chat_service import (
     build_bot_history_content,
     collect_plain_text_from_message_parts,
 )
+from astrbot.dashboard.services.github_oauth import validate_login_source
 
 SendJson = Callable[[dict], Awaitable[None]]
 ReceiveJson = Callable[[], Awaitable[dict]]
@@ -147,6 +148,7 @@ class LiveChatService:
         jwt_secret = jwt_secret or self.config["dashboard"].get("jwt_secret")
         try:
             payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+            validate_login_source(payload)
             return payload["username"]
         except jwt.ExpiredSignatureError as exc:
             raise LiveChatAuthError("Token expired") from exc
