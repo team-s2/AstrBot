@@ -37,6 +37,10 @@ from astrbot.core.persona_error_reply import (
     extract_persona_custom_error_message_from_persona,
     set_persona_custom_error_message_on_event,
 )
+from astrbot.core.persona_prompt_files import (
+    PersonaPromptFileError,
+    load_persona_prompt_files,
+)
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.platform.message_type import MessageType
 from astrbot.core.provider import Provider
@@ -555,6 +559,19 @@ async def _ensure_persona_and_skills(
         # Inject persona system prompt
         if prompt := persona["prompt"]:
             req.system_prompt += f"\n# Persona Instructions\n\n{prompt}\n"
+        # Inject persona prompt files (managed e.g. via a git repository).
+        # Files are re-read on every request; any failure aborts the request
+        # and is reported to the session like an LLM failure.
+        try:
+            prompt_files_section = load_persona_prompt_files(
+                persona.get("prompt_files")
+            )
+        except PersonaPromptFileError as exc:
+            error = PersonaPromptFileError(f"人格提示词文件读取失败：{exc}")
+            logger.error("%s", error, exc_info=True)
+            raise error from exc
+        if prompt_files_section:
+            req.system_prompt += f"\n{prompt_files_section}\n"
         if begin_dialogs := copy.deepcopy(persona.get("_begin_dialogs_processed")):
             req.contexts[:0] = begin_dialogs
     elif (

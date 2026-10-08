@@ -95,6 +95,7 @@ class SQLiteDatabase(BaseDatabase):
             await self._ensure_persona_folder_columns(conn)
             await self._ensure_persona_skills_column(conn)
             await self._ensure_persona_custom_error_message_column(conn)
+            await self._ensure_persona_prompt_files_column(conn)
             await self._ensure_platform_message_history_checkpoint_column(conn)
             await self._ensure_chatui_project_workspace_columns(conn)
             await self._ensure_conversation_indexes(conn)
@@ -164,6 +165,16 @@ class SQLiteDatabase(BaseDatabase):
         if "custom_error_message" not in columns:
             await conn.execute(
                 text("ALTER TABLE personas ADD COLUMN custom_error_message TEXT")
+            )
+
+    async def _ensure_persona_prompt_files_column(self, conn) -> None:
+        """确保 personas 表有 prompt_files 列。"""
+        result = await conn.execute(text("PRAGMA table_info(personas)"))
+        columns = {row[1] for row in result.fetchall()}
+
+        if "prompt_files" not in columns:
+            await conn.execute(
+                text("ALTER TABLE personas ADD COLUMN prompt_files JSON")
             )
 
     async def _ensure_platform_message_history_checkpoint_column(self, conn) -> None:
@@ -1220,6 +1231,7 @@ class SQLiteDatabase(BaseDatabase):
         tools=None,
         skills=None,
         custom_error_message=None,
+        prompt_files=None,
         folder_id=None,
         sort_order=0,
     ):
@@ -1230,6 +1242,7 @@ class SQLiteDatabase(BaseDatabase):
                 new_persona = Persona(
                     persona_id=persona_id,
                     system_prompt=system_prompt,
+                    prompt_files=prompt_files,
                     begin_dialogs=begin_dialogs or [],
                     tools=tools,
                     skills=skills,
@@ -1266,6 +1279,7 @@ class SQLiteDatabase(BaseDatabase):
         tools=NOT_GIVEN,
         skills=NOT_GIVEN,
         custom_error_message=NOT_GIVEN,
+        prompt_files=NOT_GIVEN,
     ):
         """Update a persona's system prompt or begin dialogs."""
         async with self.get_db() as session:
@@ -1283,6 +1297,8 @@ class SQLiteDatabase(BaseDatabase):
                     values["skills"] = skills
                 if custom_error_message is not NOT_GIVEN:
                     values["custom_error_message"] = custom_error_message
+                if prompt_files is not NOT_GIVEN:
+                    values["prompt_files"] = prompt_files
                 if not values:
                     return None
                 query = query.values(**values)

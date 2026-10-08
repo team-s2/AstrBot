@@ -11,6 +11,7 @@
     "save": "保存",
     "move": "移動",
     "addDialogPair": "会話ペアを追加",
+    "addPromptFile": "プロンプトファイルを追加",
     "export": "エクスポート",
     "import": "ペルソナをインポート",
     "more": "その他の操作"
@@ -27,6 +28,9 @@
     "customErrorMessageHelp": "このペルソナの LLM リクエストが失敗した場合（接続失敗など）、このエラー応答を優先して送信します。空欄の場合はデフォルトのエラーメッセージを送信します。",
     "presetDialogs": "プリセット会話",
     "presetDialogsHelp": "ボットが役割設定をより深く理解できるように、プリセット会話を追加します。",
+    "promptFiles": "プロンプトファイル",
+    "promptFilesHelp": "リクエストのたびに読み込まれ、システムプロンプトに追記されるファイルパスを指定します。git リポジトリなどで人格プロンプトを管理できます。相対パスは AstrBot データディレクトリ（Docker では /AstrBot/data）基準です。ファイルが存在しない・読み取れない場合は会話内でエラーが報告されます。",
+    "promptFilePath": "ファイルパス（例: personas-repo/main.md）",
     "userMessage": "ユーザーメッセージ",
     "assistantMessage": "AI の応答",
     "capabilities": "ペルソナの能力",

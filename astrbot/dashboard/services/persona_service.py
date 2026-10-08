@@ -52,13 +52,14 @@ class PersonaService:
         custom_error_message = self._normalize_custom_error_message(
             payload.get("custom_error_message")
         )
+        prompt_files = self._normalize_prompt_files(payload.get("prompt_files"))
         folder_id = payload.get("folder_id")
         sort_order = payload.get("sort_order", 0)
 
         if not persona_id:
             raise PersonaServiceError("人格ID不能为空")
-        if not system_prompt:
-            raise PersonaServiceError("系统提示词不能为空")
+        if not system_prompt and not prompt_files:
+            raise PersonaServiceError("系统提示词与提示词文件不能同时为空")
 
         self._validate_begin_dialogs(begin_dialogs)
 
@@ -69,6 +70,7 @@ class PersonaService:
             tools=tools,
             skills=skills,
             custom_error_message=custom_error_message,
+            prompt_files=prompt_files,
             folder_id=folder_id,
             sort_order=sort_order,
         )
@@ -89,6 +91,8 @@ class PersonaService:
         skills = payload.get("skills")
         has_custom_error_message = "custom_error_message" in payload
         custom_error_message = payload.get("custom_error_message")
+        has_prompt_files = "prompt_files" in payload
+        prompt_files = payload.get("prompt_files")
 
         if not persona_id:
             raise PersonaServiceError("缺少必要参数: persona_id")
@@ -97,6 +101,9 @@ class PersonaService:
             custom_error_message = self._normalize_custom_error_message(
                 custom_error_message
             )
+
+        if has_prompt_files:
+            prompt_files = self._normalize_prompt_files(prompt_files)
 
         if begin_dialogs is not None:
             self._validate_begin_dialogs(begin_dialogs)
@@ -112,6 +119,8 @@ class PersonaService:
             update_kwargs["skills"] = skills
         if has_custom_error_message:
             update_kwargs["custom_error_message"] = custom_error_message
+        if has_prompt_files:
+            update_kwargs["prompt_files"] = prompt_files
 
         await self.persona_mgr.update_persona(**update_kwargs)
         return {"message": "人格更新成功"}
@@ -237,6 +246,7 @@ class PersonaService:
         return {
             "persona_id": persona.persona_id,
             "system_prompt": persona.system_prompt,
+            "prompt_files": persona.prompt_files,
             "begin_dialogs": persona.begin_dialogs or [],
             "tools": (persona.tools or []) if empty_lists_for_tools else persona.tools,
             "skills": (persona.skills or [])
@@ -271,6 +281,21 @@ class PersonaService:
             if not isinstance(value, str):
                 raise PersonaServiceError("自定义报错回复信息必须是字符串")
             return value.strip() or None
+        return None
+
+    @staticmethod
+    def _normalize_prompt_files(value):
+        if value is not None:
+            if not isinstance(value, list):
+                raise PersonaServiceError("提示词文件必须是路径字符串列表")
+            normalized = []
+            for item in value:
+                if not isinstance(item, str):
+                    raise PersonaServiceError("提示词文件路径必须是字符串")
+                entry = item.strip()
+                if entry:
+                    normalized.append(entry)
+            return normalized or None
         return None
 
     @staticmethod

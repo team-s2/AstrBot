@@ -479,6 +479,7 @@ class FakePersonaManager:
         *,
         persona_id: str,
         system_prompt: str,
+        prompt_files: list[str] | None = None,
         begin_dialogs: list | None = None,
         tools: list[str] | None = None,
         skills: list[str] | None = None,
@@ -489,6 +490,7 @@ class FakePersonaManager:
         return SimpleNamespace(
             persona_id=persona_id,
             system_prompt=system_prompt,
+            prompt_files=prompt_files,
             begin_dialogs=begin_dialogs,
             tools=tools,
             skills=skills,

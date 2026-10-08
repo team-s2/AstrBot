@@ -11,6 +11,7 @@
     "save": "保存",
     "move": "移动",
     "addDialogPair": "添加对话对",
+    "addPromptFile": "添加提示词文件",
     "export": "导出",
     "import": "导入人格",
     "more": "更多操作"
@@ -27,6 +28,9 @@
     "customErrorMessageHelp": "当该人格的 LLM 请求失败（例如连接失败）时，优先发送这条报错回复；留空则发送默认报错信息。",
     "presetDialogs": "预设对话",
     "presetDialogsHelp": "添加一些预设的对话来帮助机器人更好地理解角色设定。",
+    "promptFiles": "提示词文件",
+    "promptFilesHelp": "指定一组文件路径，内容会在每次请求时读取并追加到系统提示词，便于用 git 仓库等方式管理人格提示词。相对路径基于 AstrBot 数据目录（Docker 内为 /AstrBot/data）。文件缺失或读取失败时，会在会话中直接报错。",
+    "promptFilePath": "文件路径（如 personas-repo/main.md）",
     "userMessage": "用户消息",
     "assistantMessage": "AI 回答",
     "capabilities": "人格能力",

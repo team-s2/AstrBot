@@ -141,6 +141,59 @@
                     </v-btn>
                   </v-expansion-panel-text>
                 </v-expansion-panel>
+
+                <v-expansion-panel value="promptFiles" elevation="0">
+                  <v-expansion-panel-title>
+                    <v-icon class="mr-2">mdi-file-document-outline</v-icon>
+                    {{ tm("form.promptFiles") }}
+                    <v-chip
+                      v-if="promptFileCount > 0"
+                      size="small"
+                      color="primary"
+                      variant="tonal"
+                      class="ml-2"
+                    >
+                      {{ promptFileCount }}
+                    </v-chip>
+                  </v-expansion-panel-title>
+
+                  <v-expansion-panel-text>
+                    <p class="text-body-2 text-medium-emphasis mb-3">
+                      {{ tm("form.promptFilesHelp") }}
+                    </p>
+
+                    <v-text-field
+                      v-for="(file, index) in personaForm.prompt_files"
+                      :key="index"
+                      v-model="personaForm.prompt_files[index]"
+                      :label="tm('form.promptFilePath')"
+                      :rules="promptFileRules"
+                      variant="outlined"
+                      density="comfortable"
+                      class="mb-3"
+                    >
+                      <template #append>
+                        <v-btn
+                          icon="mdi-delete"
+                          variant="text"
+                          size="small"
+                          color="error"
+                          @click="removePromptFile(index)"
+                        />
+                      </template>
+                    </v-text-field>
+
+                    <v-btn
+                      color="primary"
+                      variant="tonal"
+                      prepend-icon="mdi-plus"
+                      block
+                      @click="addPromptFile"
+                    >
+                      {{ tm("buttons.addPromptFile") }}
+                    </v-btn>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
               </v-expansion-panels>
             </v-col>
           </v-row>
@@ -222,6 +275,7 @@ const personaForm = reactive({
   system_prompt: "",
   custom_error_message: "",
   begin_dialogs: [],
+  prompt_files: [],
   tools: null,
   skills: null,
   folder_id: null,
@@ -245,10 +299,20 @@ const personaIdRules = computed(() => [
     tm("validation.personaIdExists"),
 ]);
 const systemPromptRules = computed(() => [
-  (value) => Boolean(value) || tm("validation.required"),
   (value) =>
-    (value && value.length >= 10) || tm("validation.minLength", { min: 10 }),
+    Boolean(value) || promptFileCount.value > 0 || tm("validation.required"),
+  (value) =>
+    !value ||
+    value.length >= 10 ||
+    promptFileCount.value > 0 ||
+    tm("validation.minLength", { min: 10 }),
 ]);
+const promptFileRules = computed(() => [
+  (value) => Boolean(value?.trim()) || tm("validation.required"),
+]);
+const promptFileCount = computed(
+  () => personaForm.prompt_files.filter((file) => file?.trim()).length,
+);
 
 function initializeForm(persona = null) {
   Object.assign(personaForm, {
@@ -256,13 +320,18 @@ function initializeForm(persona = null) {
     system_prompt: persona?.system_prompt || "",
     custom_error_message: persona?.custom_error_message || "",
     begin_dialogs: [...(persona?.begin_dialogs || [])],
+    prompt_files: [...(persona?.prompt_files || [])],
     tools:
       persona?.tools === null || !persona ? null : [...(persona.tools || [])],
     skills:
       persona?.skills === null || !persona ? null : [...(persona.skills || [])],
     folder_id: persona?.folder_id ?? props.currentFolderId,
   });
-  expandedPanels.value = smAndDown.value ? [] : ["dialogs"];
+  expandedPanels.value = smAndDown.value
+    ? []
+    : personaForm.prompt_files.length > 0
+      ? ["dialogs", "promptFiles"]
+      : ["dialogs"];
 }
 
 function closeDialog() {
@@ -336,6 +405,9 @@ async function savePersona() {
   const payload = {
     ...personaForm,
     begin_dialogs: [...personaForm.begin_dialogs],
+    prompt_files: personaForm.prompt_files
+      .map((file) => file.trim())
+      .filter(Boolean),
     tools: personaForm.tools === null ? null : [...personaForm.tools],
     skills: personaForm.skills === null ? null : [...personaForm.skills],
   };
@@ -395,6 +467,17 @@ function addDialogPair() {
 
 function removeDialog(index) {
   personaForm.begin_dialogs.splice(index % 2 === 0 ? index : index - 1, 2);
+}
+
+function addPromptFile() {
+  personaForm.prompt_files.push("");
+  if (!expandedPanels.value.includes("promptFiles")) {
+    expandedPanels.value.push("promptFiles");
+  }
+}
+
+function removePromptFile(index) {
+  personaForm.prompt_files.splice(index, 1);
 }
 
 function getDialogRules(index) {

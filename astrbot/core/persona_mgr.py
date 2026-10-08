@@ -9,6 +9,7 @@ from astrbot.core.sentinels import NOT_GIVEN
 DEFAULT_PERSONALITY = Personality(
     prompt="You are a helpful and friendly assistant.",
     name="default",
+    prompt_files=None,
     begin_dialogs=[],
     mood_imitation_dialogs=[],
     tools=None,
@@ -157,6 +158,7 @@ class PersonaManager:
         tools: list[str] | None | object = NOT_GIVEN,
         skills: list[str] | None | object = NOT_GIVEN,
         custom_error_message: str | None | object = NOT_GIVEN,
+        prompt_files: list[str] | None | object = NOT_GIVEN,
     ):
         """更新指定 persona 的信息。tools 参数为 None 时表示使用所有工具，空列表表示不使用任何工具"""
         existing_persona = await self.db.get_persona_by_id(persona_id)
@@ -169,6 +171,8 @@ class PersonaManager:
             update_kwargs["skills"] = skills
         if custom_error_message is not NOT_GIVEN:
             update_kwargs["custom_error_message"] = custom_error_message
+        if prompt_files is not NOT_GIVEN:
+            update_kwargs["prompt_files"] = prompt_files
 
         persona = await self.db.update_persona(
             persona_id,
@@ -335,6 +339,7 @@ class PersonaManager:
         tools: list[str] | None = None,
         skills: list[str] | None = None,
         custom_error_message: str | None = None,
+        prompt_files: list[str] | None = None,
         folder_id: str | None = None,
         sort_order: int = 0,
     ) -> Persona:
@@ -358,6 +363,7 @@ class PersonaManager:
             tools=tools,
             skills=skills,
             custom_error_message=custom_error_message,
+            prompt_files=prompt_files,
             folder_id=folder_id,
             sort_order=sort_order,
         )
@@ -380,6 +386,7 @@ class PersonaManager:
             {
                 "prompt": persona.system_prompt,
                 "name": persona.persona_id,
+                "prompt_files": persona.prompt_files,
                 "begin_dialogs": persona.begin_dialogs or [],
                 "mood_imitation_dialogs": [],  # deprecated
                 "tools": persona.tools,
@@ -438,6 +445,7 @@ class PersonaManager:
         self.selected_default_persona = Persona(
             persona_id=selected_default_persona["name"],
             system_prompt=selected_default_persona["prompt"],
+            prompt_files=selected_default_persona["prompt_files"],
             begin_dialogs=selected_default_persona["begin_dialogs"],
             tools=selected_default_persona["tools"] or None,
             skills=selected_default_persona["skills"] or None,
