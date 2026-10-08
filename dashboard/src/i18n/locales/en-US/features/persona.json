@@ -11,6 +11,7 @@
     "save": "Save",
     "move": "Move",
     "addDialogPair": "Add Dialog Pair",
+    "addPromptFile": "Add Prompt File",
     "export": "Export",
     "import": "Import Persona",
     "more": "More actions"
@@ -27,6 +28,9 @@
     "customErrorMessageHelp": "When this persona's LLM request fails (for example, connection failures), this error reply is sent first. Leave empty to use the default error message.",
     "presetDialogs": "Preset Dialogs",
     "presetDialogsHelp": "Add some preset dialogs to help the bot better understand the role settings. The number of dialogs must be even (users and assistants take turns).",
+    "promptFiles": "Prompt Files",
+    "promptFilesHelp": "Specify file paths whose contents are read on every request and appended to the system prompt, so persona prompts can be managed in a git repository. Relative paths resolve against the AstrBot data directory (/AstrBot/data in Docker). Missing or unreadable files are reported in the conversation.",
+    "promptFilePath": "File path (e.g. personas-repo/main.md)",
     "userMessage": "User Message",
     "assistantMessage": "Assistant Message",
     "capabilities": "Persona Capabilities",

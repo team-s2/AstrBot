@@ -162,6 +162,9 @@ class Persona(TimestampMixin, SQLModel, table=True):
     )
     persona_id: str = Field(max_length=255, nullable=False)
     system_prompt: str = Field(sa_type=Text, nullable=False)
+    prompt_files: list | None = Field(default=None, sa_type=JSON)
+    """可选的提示词文件路径列表。相对路径基于 AstrBot 数据目录解析，
+    文件内容会在每次请求时读取并注入到系统提示词中。None 表示未配置。"""
     begin_dialogs: list | None = Field(default=None, sa_type=JSON)
     """a list of strings, each representing a dialog to start with"""
     tools: list | None = Field(default=None, sa_type=JSON)
@@ -597,6 +600,8 @@ class Personality(TypedDict):
 
     prompt: str
     name: str
+    prompt_files: list[str] | None
+    """提示词文件路径列表。None 表示未配置，配置后文件内容会注入到系统提示词中。"""
     begin_dialogs: list[str]
     mood_imitation_dialogs: list[str]
     """情感模拟对话预设。在 v4.0.0 版本及之后，已被废弃。"""
