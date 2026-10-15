@@ -729,7 +729,7 @@ const systemConfigGroups = computed(() => {
     };
 
     return [
-        createGroup('runtime', ['timezone', 'callback_api_base']),
+        createGroup('runtime', ['privacy_mode', 'timezone', 'callback_api_base']),
         createGroup('network', ['respect_env_proxy', 'http_proxy', 'https_proxy', 'no_proxy', 'pip_install_arg', 'pypi_index_url']),
         createGroup('webuiSecurity', [
             'dashboard.trust_proxy_headers',

@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator
 
-from astrbot.core import logger
+from astrbot.core import logger, privacy
 from astrbot.core.config.agent_runner import normalize_agent_runner
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.star.session_llm_manager import SessionServiceManager
@@ -37,6 +37,14 @@ class AgentRequestSubStage(Stage):
         await self.agent_sub_stage.initialize(ctx)
 
     async def process(self, event: AstrMessageEvent) -> AsyncGenerator[None, None]:
+        if privacy.enabled and isinstance(
+            self.agent_sub_stage, ThirdPartyAgentSubStage
+        ):
+            event.set_result(
+                event.plain_result("Privacy mode requires the local agent runner.")
+            )
+            yield
+            return
         if not self.ctx.astrbot_config["provider_settings"]["enable"]:
             logger.debug(
                 "This pipeline does not enable AI capability, skip processing."

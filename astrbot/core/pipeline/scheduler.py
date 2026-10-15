@@ -1,7 +1,7 @@
 from collections.abc import AsyncGenerator
 from typing import cast
 
-from astrbot.core import logger
+from astrbot.core import logger, privacy
 from astrbot.core.log import log_context
 from astrbot.core.platform import AstrMessageEvent
 from astrbot.core.platform.sources.webchat.webchat_event import WebChatMessageEvent
@@ -87,8 +87,14 @@ class PipelineScheduler:
             event (AstrMessageEvent): 事件对象
 
         """
-        active_event_registry.register(event)
-        with log_context(event.get_platform_id(), event.get_platform_name()):
+        if privacy.enabled and isinstance(event, WebChatMessageEvent):
+            event.cleanup_temporary_local_files()
+            return
+        with (
+            privacy.run_scope(),
+            log_context(event.get_platform_id(), event.get_platform_name()),
+        ):
+            active_event_registry.register(event)
             try:
                 await self._process_stages(event)
 

@@ -8,7 +8,7 @@ from astrbot.api import star
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.message_components import Image, Json, Plain
 from astrbot.api.provider import LLMResponse, ProviderRequest
-from astrbot.core import logger
+from astrbot.core import logger, privacy
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform.message_type import MessageType
 from astrbot.core.utils.session_waiter import (
@@ -139,6 +139,8 @@ class Main(star.Star):
             logger.error("handle_empty_mention error: " + str(e))
 
     def group_context_enabled(self, event: AstrMessageEvent):
+        if privacy.enabled:
+            return False
         group_context_settings = self.context.get_config(umo=event.unified_msg_origin)[
             "provider_ltm_settings"
         ]
@@ -167,7 +169,7 @@ class Main(star.Star):
             "provider_ltm_settings",
             {},
         )
-        if not settings.get("group_message_history_enable", False):
+        if privacy.enabled or not settings.get("group_message_history_enable", False):
             return
 
         try:
@@ -296,7 +298,7 @@ class Main(star.Star):
             "provider_ltm_settings",
             {},
         )
-        if not settings.get("group_message_history_enable", False):
+        if privacy.enabled or not settings.get("group_message_history_enable", False):
             return
 
         chain = response.result_chain

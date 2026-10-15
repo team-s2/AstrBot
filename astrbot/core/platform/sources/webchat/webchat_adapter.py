@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from astrbot import logger
-from astrbot.core import db_helper
+from astrbot.core import db_helper, privacy
 from astrbot.core.db.po import PlatformMessageHistory
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.platform import (
@@ -88,6 +88,8 @@ class WebChatAdapter(Platform):
         session: MessageSesion,
         message_chain: MessageChain,
     ) -> None:
+        if privacy.enabled:
+            raise RuntimeError("WebChat is disabled in privacy mode")
         conversation_id = _extract_conversation_id(session.session_id)
         active_request_ids = self._webchat_queue_mgr.list_back_request_ids(
             conversation_id

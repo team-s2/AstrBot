@@ -305,6 +305,7 @@ DEFAULT_CONFIG = {
         },
     },
     "wake_prefix": ["/"],
+    "privacy_mode": False,
     "log_level": "INFO",
     "log_file_enable": False,
     "log_file_path": "logs/astrbot.log",
@@ -3223,6 +3224,7 @@ CONFIG_METADATA_2 = {
                 "type": "bool",
                 "hint": "禁用后，AstrBot 将不再上传匿名使用统计数据。",
             },
+            "privacy_mode": {"type": "bool"},
             "log_level": {
                 "type": "string",
                 "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
@@ -4740,6 +4742,11 @@ CONFIG_METADATA_3_SYSTEM = {
                 "description": "系统配置",
                 "type": "object",
                 "items": {
+                    "privacy_mode": {
+                        "description": "隐私模式",
+                        "type": "bool",
+                        "hint": "全局生效，修改后需重启。消息和 LLM 上下文仅在一次响应期间使用，结束即丢弃；关闭日志、群历史、WebChat 和外部会话运行器。不删除启用前的数据；第三方插件及模型服务的记录需另行管理。",
+                    },
                     "log_level": {
                         "description": "控制台日志级别",
                         "type": "string",

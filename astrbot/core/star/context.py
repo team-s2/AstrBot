@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from deprecated import deprecated
 
+from astrbot.core import privacy
 from astrbot.core.agent.hooks import BaseAgentRunHooks
 from astrbot.core.agent.message import ContentPart, Message
 from astrbot.core.agent.runners.tool_loop_agent_runner import ToolLoopAgentRunner
@@ -676,13 +677,15 @@ class Context:
 
         for platform in self.platform_manager.platform_insts:
             if platform.meta().id == session.platform_name:
-                await platform.send_by_session(session, message_chain)
+                with privacy.run_scope():
+                    await platform.send_by_session(session, message_chain)
                 settings = self.get_config(umo=str(session)).get(
                     "provider_ltm_settings",
                     {},
                 )
                 if (
-                    session.message_type == MessageType.GROUP_MESSAGE
+                    not privacy.enabled
+                    and session.message_type == MessageType.GROUP_MESSAGE
                     and platform.meta().name != "webchat"
                     and settings.get("group_message_history_enable", False)
                 ):

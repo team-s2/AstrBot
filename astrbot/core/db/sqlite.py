@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import defer
 from sqlmodel import col, delete, desc, func, or_, select, text, update
 
+from astrbot.core import privacy
 from astrbot.core.db import BaseDatabase
 from astrbot.core.db.po import (
     ApiKey,
@@ -348,6 +349,8 @@ class SQLiteDatabase(BaseDatabase):
     # ====
 
     async def get_conversations(self, user_id=None, platform_id=None):
+        if privacy.enabled:
+            return []
         async with self.get_db() as session:
             session: AsyncSession
             query = select(ConversationV2)
@@ -363,6 +366,9 @@ class SQLiteDatabase(BaseDatabase):
             return result.scalars().all()
 
     async def get_conversation_by_id(self, cid):
+        if privacy.enabled:
+            state = privacy.current_run.get()
+            return state.conversations.get(cid) if state and state.active else None
         async with self.get_db() as session:
             session: AsyncSession
             query = select(ConversationV2).where(ConversationV2.conversation_id == cid)
@@ -370,6 +376,8 @@ class SQLiteDatabase(BaseDatabase):
             return result.scalar_one_or_none()
 
     async def get_all_conversations(self, page=1, page_size=20):
+        if privacy.enabled:
+            return []
         async with self.get_db() as session:
             session: AsyncSession
             offset = (page - 1) * page_size
@@ -390,6 +398,8 @@ class SQLiteDatabase(BaseDatabase):
         include_history=True,
         **kwargs,
     ):
+        if privacy.enabled:
+            return [], 0
         async with self.get_db() as session:
             session: AsyncSession
             # Build the base query with filters
@@ -596,6 +606,8 @@ class SQLiteDatabase(BaseDatabase):
         Returns:
             Sorted platform IDs that have at least one conversation.
         """
+        if privacy.enabled:
+            return []
         async with self.get_db() as session:
             result = await session.execute(
                 select(ConversationV2.platform_id)
@@ -615,6 +627,19 @@ class SQLiteDatabase(BaseDatabase):
         created_at=None,
         updated_at=None,
     ):
+        if privacy.enabled:
+            state = privacy.current_run.get()
+            if state is None or not state.active:
+                raise RuntimeError("Private conversations require an active response")
+            conversation = ConversationV2(
+                user_id=user_id,
+                platform_id=platform_id,
+                content=content or [],
+                title=title,
+                persona_id=persona_id,
+            )
+            state.conversations[conversation.conversation_id] = conversation
+            return conversation
         kwargs = {}
         if cid:
             kwargs["conversation_id"] = cid
@@ -639,6 +664,14 @@ class SQLiteDatabase(BaseDatabase):
     async def update_conversation(
         self, cid, title=None, persona_id=None, content=None, token_usage=None
     ):
+        if privacy.enabled:
+            conversation = await self.get_conversation_by_id(cid)
+            if conversation:
+                if content is not None:
+                    conversation.content = content
+                if persona_id is not None:
+                    conversation.persona_id = persona_id
+            return conversation
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
@@ -661,6 +694,11 @@ class SQLiteDatabase(BaseDatabase):
         return await self.get_conversation_by_id(cid)
 
     async def delete_conversation(self, cid) -> None:
+        if privacy.enabled:
+            state = privacy.current_run.get()
+            if state:
+                state.conversations.pop(cid, None)
+            return
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
@@ -688,6 +726,8 @@ class SQLiteDatabase(BaseDatabase):
         platform=None,
     ) -> tuple[list[dict], int]:
         """Get paginated session conversations with joined conversation and persona details."""
+        if privacy.enabled:
+            return [], 0
         async with self.get_db() as session:
             session: AsyncSession
             offset = (page - 1) * page_size
@@ -800,6 +840,12 @@ class SQLiteDatabase(BaseDatabase):
         max_messages=None,
     ):
         """Insert a new platform message history record."""
+        if privacy.enabled:
+            return PlatformMessageHistory(
+                platform_id=platform_id,
+                user_id=user_id,
+                content={},
+            )
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
@@ -839,6 +885,8 @@ class SQLiteDatabase(BaseDatabase):
         llm_checkpoint_id: str | None = None,
     ) -> None:
         """Update a platform message history record."""
+        if privacy.enabled:
+            return
         values = {}
         if content is not None:
             values["content"] = content
@@ -896,6 +944,8 @@ class SQLiteDatabase(BaseDatabase):
         page_size=20,
     ):
         """Get platform message history records."""
+        if privacy.enabled:
+            return []
         async with self.get_db() as session:
             session: AsyncSession
             offset = (page - 1) * page_size
@@ -927,6 +977,8 @@ class SQLiteDatabase(BaseDatabase):
         Returns:
             Number of records matching the platform/user scope.
         """
+        if privacy.enabled:
+            return 0
         async with self.get_db() as session:
             session: AsyncSession
             result = await session.execute(
@@ -941,6 +993,8 @@ class SQLiteDatabase(BaseDatabase):
         self, message_id: int
     ) -> PlatformMessageHistory | None:
         """Get a platform message history record by its ID."""
+        if privacy.enabled:
+            return None
         async with self.get_db() as session:
             session: AsyncSession
             query = select(PlatformMessageHistory).where(
@@ -958,6 +1012,8 @@ class SQLiteDatabase(BaseDatabase):
         selected_text: str,
     ) -> WebChatThread:
         """Create a WebChat side thread."""
+        if privacy.enabled:
+            raise RuntimeError("WebChat is disabled in privacy mode")
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
@@ -1083,6 +1139,8 @@ class SQLiteDatabase(BaseDatabase):
 
     async def insert_attachment(self, path, type, mime_type):
         """Insert a new attachment record."""
+        if privacy.enabled:
+            raise RuntimeError("Attachment storage is disabled in privacy mode")
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():

@@ -1253,6 +1253,10 @@
     "name": "系统配置",
     "system": {
       "description": "系统配置",
+      "privacy_mode": {
+        "description": "隐私模式",
+        "hint": "全局生效，修改后需重启。消息和 LLM 上下文仅在一次响应期间使用，结束即丢弃；关闭日志、群历史、WebChat 和外部会话运行器。不删除启用前的数据；第三方插件及模型服务的记录需另行管理。"
+      },
       "log_level": {
         "description": "控制台日志级别",
         "hint": "控制台输出日志的级别。"

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
-from astrbot.core import logger
+from astrbot.core import logger, privacy
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.platform.message_session import MessageSesion
@@ -673,8 +673,11 @@ class OpenApiService:
             )
 
         try:
-            message_chain = await self.build_message_chain_from_payload(message_payload)
-            await platform_inst.send_by_session(session, message_chain)
+            with privacy.run_scope():
+                message_chain = await self.build_message_chain_from_payload(
+                    message_payload
+                )
+                await platform_inst.send_by_session(session, message_chain)
         except OpenApiServiceError:
             raise
         except ValueError as exc:

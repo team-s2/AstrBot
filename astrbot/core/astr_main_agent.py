@@ -11,7 +11,7 @@ from collections.abc import Coroutine
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from astrbot.core import logger
+from astrbot.core import logger, privacy
 from astrbot.core.agent.handoff import HandoffTool
 from astrbot.core.agent.mcp_client import MCPTool
 from astrbot.core.agent.message import TextPart
@@ -615,7 +615,7 @@ async def _ensure_persona_and_skills(
         req.system_prompt += CHATUI_SPECIAL_DEFAULT_PERSONA_PROMPT
 
     # Inject skills prompt
-    runtime = cfg.get("computer_use_runtime", "none")
+    runtime = "none" if privacy.enabled else cfg.get("computer_use_runtime", "none")
     skill_manager = SkillManager()
     skills = skill_manager.list_skills(active_only=True, runtime=runtime)
     skills = _filter_skills_for_current_config(skills, cfg)
@@ -670,7 +670,7 @@ async def _ensure_persona_and_skills(
     # sub agents integration
     orch_cfg = plugin_context.get_config().get("subagent_orchestrator", {})
     so = plugin_context.subagent_orchestrator
-    if orch_cfg.get("main_enable", False) and so:
+    if not privacy.enabled and orch_cfg.get("main_enable", False) and so:
         remove_dup = bool(orch_cfg.get("remove_main_duplicate_tools", False))
 
         assigned_tools: set[str] = set()
@@ -1880,9 +1880,9 @@ async def build_main_agent(
     if config.llm_safety_mode:
         _apply_llm_safety_mode(config, req)
 
-    if config.computer_use_runtime == "sandbox":
+    if config.computer_use_runtime == "sandbox" and not privacy.enabled:
         _apply_sandbox_tools(config, req, req.session_id)
-    elif config.computer_use_runtime == "local":
+    elif config.computer_use_runtime == "local" and not privacy.enabled:
         _apply_local_env_tools(req, plugin_context)
 
     agent_runner = AgentRunner()
@@ -1890,7 +1890,7 @@ async def build_main_agent(
         context=plugin_context,
         event=event,
     )
-    if config.computer_use_runtime == "local":
+    if config.computer_use_runtime == "local" and not privacy.enabled:
         local_policy = get_local_permission_policy(
             AgentContextWrapper(context=astr_agent_ctx)
         )
@@ -1903,7 +1903,7 @@ async def build_main_agent(
                 f"{req.system_prompt or ''}\n{LOCAL_NETWORK_POLICY_NOTICE}\n"
             )
 
-    if config.add_cron_tools:
+    if config.add_cron_tools and not privacy.enabled:
         _proactive_cron_job_tools(req, plugin_context)
 
     if event.platform_meta.support_proactive_message:
@@ -1919,8 +1919,10 @@ async def build_main_agent(
         "provider_ltm_settings",
         {},
     )
-    if event.get_message_type() == MessageType.GROUP_MESSAGE and ltm_settings.get(
-        "group_message_history_enable", False
+    if (
+        not privacy.enabled
+        and event.get_message_type() == MessageType.GROUP_MESSAGE
+        and ltm_settings.get("group_message_history_enable", False)
     ):
         if req.func_tool is None:
             req.func_tool = ToolSet()
@@ -1962,7 +1964,7 @@ async def build_main_agent(
             else TOOL_CALL_PROMPT_SKILLS_LIKE_MODE
         )
 
-        if config.computer_use_runtime == "local":
+        if config.computer_use_runtime == "local" and not privacy.enabled:
             workspace_root = await _get_workspace_path_for_umo(
                 event.unified_msg_origin,
                 plugin_context,

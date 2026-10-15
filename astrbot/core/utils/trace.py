@@ -5,7 +5,7 @@ import uuid
 from typing import Any
 
 from astrbot import logger
-from astrbot.core import LogManager, astrbot_config
+from astrbot.core import LogManager, astrbot_config, privacy
 from astrbot.core.log import LogQueueHandler
 
 _cached_log_broker = None
@@ -51,7 +51,7 @@ class TraceSpan:
 
     def record(self, action: str, **fields: Any) -> None:
         # Check if trace recording is enabled
-        if not astrbot_config.get("trace_enable", True):
+        if privacy.enabled or not astrbot_config.get("trace_enable", True):
             return
 
         payload = {

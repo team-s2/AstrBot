@@ -11,6 +11,7 @@ from typing import Any
 from deprecated import deprecated
 
 from astrbot import logger
+from astrbot.core import privacy
 from astrbot.core.agent.tool import ToolSet
 from astrbot.core.db.po import Conversation
 from astrbot.core.message.components import (
@@ -240,6 +241,8 @@ class AstrMessageEvent(abc.ABC):
 
     def untrack_temporary_local_file(self, path: str) -> None:
         """Exclude a retained attachment from event-scoped cleanup."""
+        if privacy.enabled:
+            return
         if path in self._temporary_local_files:
             self._temporary_local_files.remove(path)
 

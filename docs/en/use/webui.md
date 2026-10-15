@@ -72,6 +72,18 @@ To replace the TOTP secret, you can do so in the TOTP management window, where y
 - Once two-factor authentication is enabled, modifying TOTP-related configurations requires verifying the current TOTP code to prevent unauthorized changes.
 - Changing the admin panel password will revoke all trusted devices.
 
+## Privacy mode
+
+In **System Settings → General → Runtime Basics**, enable **Privacy mode**, save, and restart AstrBot. The default is off. The root `privacy_mode` setting in `data/cmd_config.json` applies to every bot and configuration profile; it is not a per-group setting. Changing it does not affect a running process until restart.
+
+A response run includes the incoming request, model calls, and tool loop. Its conversation exists only in memory and is discarded when the pipeline finishes, fails, or is cancelled. Each subsequent request starts with empty history, including requests queued while a response is running; automatic follow-up merging is disabled. Group history and group-context accumulation are disabled even if their individual switches are on. Conversation listings and history queries return no stored messages while privacy mode is active.
+
+AstrBot's logging handlers and trace publication are disabled at every level, including plugin logs sent through those handlers, console/file output and the WebUI log cache. This also removes normal diagnostic logs. Core media files created during a response use a private temporary directory and are removed at the end, including tool images and overflow files. Temporary files are not secure erasure: a forced process kill can leave them behind, and disk snapshots or swap are outside this setting. For a deployment that must avoid durable media copies, use a memory-backed `TMPDIR` and exclude it from backups.
+
+Features that retain conversations or files are unavailable: WebChat (including live chat and uploads), backup APIs, external agent runners, scheduled-task tools, built-in computer-use tools and SubAgent orchestration. The local agent runner, ordinary IM delivery, persona configuration and non-persisting plugin commands remain available. There is no change to NapCat.
+
+Enabling this setting does not delete existing databases, attachments, logs or backups. Remove historical data separately if required. Privacy mode controls AstrBot's built-in storage; arbitrary plugins, MCP services, model providers and messaging platforms can still retain data and need their own controls. This setting does not remove dashboard administrators' ability to change settings and restart the service.
+
 ## ChatUI
 
 AstrBot includes a built-in ChatUI for talking to configured models directly in your browser.

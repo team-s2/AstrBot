@@ -16,6 +16,7 @@ Data subdirectories:
 import os
 import tempfile
 
+from astrbot.core import privacy
 from astrbot.core.utils.runtime_env import is_packaged_desktop_runtime
 
 
@@ -74,6 +75,10 @@ def get_astrbot_webchat_path() -> str:
 
 def get_astrbot_temp_path() -> str:
     """Return the AstrBot temporary data directory path."""
+    if privacy.enabled and (state := privacy.current_run.get()) is not None:
+        if not state.active:
+            raise RuntimeError("The private response has ended")
+        return state.temp_dir
     return os.path.realpath(os.path.join(get_astrbot_data_path(), "temp"))
 
 
@@ -89,6 +94,8 @@ def get_astrbot_workspaces_path() -> str:
 
 def get_astrbot_system_tmp_path() -> str:
     """Return the shared system temporary directory used by local tools."""
+    if privacy.enabled and privacy.current_run.get() is not None:
+        return get_astrbot_temp_path()
     return os.path.realpath(os.path.join(tempfile.gettempdir(), ".astrbot"))
 
 

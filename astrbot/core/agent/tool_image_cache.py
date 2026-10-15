@@ -7,9 +7,12 @@ import base64
 import os
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import ClassVar
+from uuid import uuid4
 
 from astrbot import logger
+from astrbot.core import privacy
 from astrbot.core.utils.astrbot_path import get_astrbot_temp_path
 
 
@@ -86,11 +89,15 @@ class ToolImageCache:
         """
         ext = self._get_file_extension(mime_type)
         file_name = f"{tool_call_id}_{index}{ext}"
-        file_path = os.path.join(self._cache_dir, file_name)
+        cache_dir = self._cache_dir
+        if privacy.enabled:
+            cache_dir = str(Path(get_astrbot_temp_path()) / self.CACHE_DIR_NAME)
+            file_name = f"{uuid4().hex}{ext}"
+        file_path = str(Path(cache_dir) / file_name)
 
         try:
             # Runtime cache cleanup may remove empty subdirectories.
-            os.makedirs(self._cache_dir, exist_ok=True)
+            Path(cache_dir).mkdir(parents=True, exist_ok=True)
             image_bytes = base64.b64decode(base64_data)
             with open(file_path, "wb") as f:
                 f.write(image_bytes)

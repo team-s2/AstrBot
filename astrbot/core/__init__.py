@@ -1,5 +1,6 @@
 import os
 
+from astrbot.core import privacy
 from astrbot.core.config import AstrBotConfig
 from astrbot.core.config.default import DB_PATH
 from astrbot.core.db.sqlite import SQLiteDatabase
@@ -30,6 +31,8 @@ os.makedirs(get_astrbot_data_path(), exist_ok=True)
 DEMO_MODE = os.getenv("DEMO_MODE", "False").strip().lower() in ("true", "1", "t")
 
 astrbot_config = AstrBotConfig()
+# Privacy is global and restart-bound; profile reloads cannot weaken it.
+privacy.enabled = astrbot_config.get("privacy_mode", False) is True
 t2i_base_url = astrbot_config.get("t2i_endpoint", "https://t2i.soulter.top/text2img")
 html_renderer = HtmlRenderer(t2i_base_url)
 """**Deprecated**. For plugin developers, please use `self.context.html_renderer` instead."""

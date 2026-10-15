@@ -8,6 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from astrbot.core import privacy
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.utils.metrics import Metric
 
@@ -73,6 +74,9 @@ class Platform(abc.ABC):
 
     def record_error(self, message: str, traceback_str: str | None = None) -> None:
         """记录一个错误"""
+        if privacy.enabled:
+            message = "Platform error; details suppressed by privacy mode"
+            traceback_str = None
         self._errors.append(PlatformError(message=message, traceback=traceback_str))
         self._status = PlatformStatus.ERROR
 

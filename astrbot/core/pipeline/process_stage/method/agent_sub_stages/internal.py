@@ -5,7 +5,7 @@ import base64
 from collections.abc import AsyncGenerator
 from dataclasses import replace
 
-from astrbot.core import db_helper, logger
+from astrbot.core import db_helper, logger, privacy
 from astrbot.core.agent.message import (
     CheckpointData,
     CheckpointMessageSegment,
@@ -200,7 +200,9 @@ class InternalAgentSubStage(Stage):
                 return
 
             logger.debug("ready to request llm provider")
-            follow_up_capture = try_capture_follow_up(event)
+            follow_up_capture = (
+                None if privacy.enabled else try_capture_follow_up(event)
+            )
             if follow_up_capture:
                 (
                     follow_up_consumed_marked,

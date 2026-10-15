@@ -6,8 +6,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
-from astrbot.core import DEMO_MODE, LogBroker
+from astrbot.core import DEMO_MODE, LogBroker, privacy
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.log import LogManager
@@ -82,6 +83,42 @@ from .updates import legacy_router as legacy_updates_router
 CLEAR_SITE_DATA_HEADERS = {"Clear-Site-Data": '"cache"'}
 
 
+class PrivacyMiddleware:
+    """Reject persistent chat and export paths before reading request bodies."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        path = scope.get("path", "").rstrip("/")
+        blocked = (
+            "/api/chat",
+            "/api/live_chat",
+            "/api/unified_chat",
+            "/api/backup",
+            "/api/file",
+            "/api/v1/chat",
+            "/api/v1/live-chat",
+            "/api/v1/unified-chat",
+            "/api/v1/backups",
+            "/api/v1/files",
+        )
+        if privacy.enabled and any(
+            path == prefix or path.startswith(prefix + "/") for prefix in blocked
+        ):
+            if scope["type"] == "websocket":
+                await send({"type": "websocket.close", "code": 1008})
+                return
+            if scope["type"] == "http":
+                response = JSONResponse(
+                    error("This feature is disabled in privacy mode."),
+                    status_code=403,
+                )
+                await response(scope, receive, send)
+                return
+        await self.app(scope, receive, send)
+
+
 def create_dashboard_asgi_app(
     *,
     core_lifecycle: AstrBotCoreLifecycle,
@@ -99,6 +136,7 @@ def create_dashboard_asgi_app(
     # Compress JS/CSS and other sizable responses; Starlette's GZipMiddleware
     # skips text/event-stream, so SSE endpoints are unaffected.
     app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(PrivacyMiddleware)
     app.state.core_lifecycle = core_lifecycle
     app.state.db = db
     app.state.jwt_secret = jwt_secret

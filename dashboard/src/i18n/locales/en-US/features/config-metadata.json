@@ -1232,6 +1232,10 @@
     "name": "System",
     "system": {
       "description": "System Settings",
+      "privacy_mode": {
+        "description": "Privacy mode",
+        "hint": "Global; restart required. Discard messages and LLM context after each response. Disable logs, group history, WebChat and external conversation runners. Existing data is not deleted. Plugins and model services require separate retention controls."
+      },
       "log_level": {
         "description": "Console Log Level",
         "hint": "Log level for console output."

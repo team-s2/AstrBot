@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger as _raw_loguru_logger
 
+from astrbot.core import privacy
 from astrbot.core.config.default import VERSION
 from astrbot.core.utils.astrbot_path import (
     get_astrbot_config_path,
@@ -163,6 +164,10 @@ def _build_source_file(pathname: str | None) -> str:
 
 
 def _patch_record(record: "Record") -> None:
+    if privacy.enabled:
+        record["message"] = "Log content suppressed by privacy mode"
+        record["exception"] = None
+        record["extra"].clear()
     extra = record["extra"]
     extra.setdefault("plugin_tag", "[Core]")
     extra.setdefault("short_levelname", _get_short_level_name(record["level"].name))
@@ -185,6 +190,8 @@ class _LoguruInterceptHandler(logging.Handler):
     """将 logging 记录转发到 loguru。"""
 
     def emit(self, record: logging.LogRecord) -> None:
+        if privacy.enabled:
+            return
         try:
             level: str | int = _loguru.level(record.levelname).name
         except ValueError:
@@ -232,6 +239,8 @@ class LogBroker:
         self.subscribers.remove(q)
 
     def publish(self, log_entry: dict) -> None:
+        if privacy.enabled:
+            return
         self.log_cache.append(log_entry)
         for q in self.subscribers:
             try:
@@ -248,6 +257,8 @@ class LogQueueHandler(logging.Handler):
         self.log_broker = log_broker
 
     def emit(self, record: logging.LogRecord) -> None:
+        if privacy.enabled:
+            return
         log_entry = self.format(record)
         self.log_broker.publish(
             {
@@ -306,7 +317,9 @@ class LogManager:
             sys.stdout,
             level="DEBUG",
             colorize=True,
-            filter=lambda record: not record["extra"].get("is_trace", False),
+            filter=lambda record: (
+                not privacy.enabled and not record["extra"].get("is_trace", False)
+            ),
             format=(
                 "<green>[{time:HH:mm:ss.SSS}]</green> {extra[plugin_tag]} "
                 "<level>[{extra[short_levelname]}]</level>{extra[astrbot_version_tag]} "
@@ -540,7 +553,9 @@ class LogManager:
                 rotation=rotation,
                 retention=retention,
                 enqueue=True,
-                filter=lambda record: record["extra"].get("is_trace", False),
+                filter=lambda record: (
+                    not privacy.enabled and record["extra"].get("is_trace", False)
+                ),
             )
 
         logging_level_name = logging.getLevelName(level)
@@ -558,7 +573,9 @@ class LogManager:
             rotation=rotation,
             retention=retention,
             enqueue=True,
-            filter=lambda record: not record["extra"].get("is_trace", False),
+            filter=lambda record: (
+                not privacy.enabled and not record["extra"].get("is_trace", False)
+            ),
         )
 
     @classmethod
@@ -587,7 +604,8 @@ class LogManager:
                         level=configured_level,
                         colorize=True,
                         filter=lambda record: (
-                            not record["extra"].get("is_trace", False)
+                            not privacy.enabled
+                            and not record["extra"].get("is_trace", False)
                         ),
                         format=(
                             "<green>[{time:HH:mm:ss.SSS}]</green> {extra[plugin_tag]} "

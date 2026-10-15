@@ -102,6 +102,10 @@ class FutureTaskTool(FunctionTool[AstrAgentContext]):
     async def call(
         self, context: ContextWrapper[AstrAgentContext], **kwargs
     ) -> ToolExecResult:
+        from astrbot.core import privacy
+
+        if privacy.enabled:
+            return "Scheduled tasks are disabled in privacy mode."
         cron_mgr = context.context.context.cron_manager
         if cron_mgr is None:
             return "error: cron manager is not available."

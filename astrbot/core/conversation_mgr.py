@@ -9,7 +9,7 @@ from collections.abc import Awaitable, Callable
 
 from deprecated import deprecated
 
-from astrbot.core import sp
+from astrbot.core import privacy, sp
 from astrbot.core.agent.message import AssistantMessageSegment, UserMessageSegment
 from astrbot.core.db import BaseDatabase
 from astrbot.core.db.po import Conversation, ConversationV2
@@ -119,6 +119,11 @@ class ConversationManager:
             title=title,
             persona_id=persona_id,
         )
+        if privacy.enabled:
+            state = privacy.current_run.get()
+            if state and state.active:
+                state.selected[unified_msg_origin] = conv.conversation_id
+            return conv.conversation_id
         self.session_conversations[unified_msg_origin] = conv.conversation_id
         await sp.session_put(unified_msg_origin, "sel_conv_id", conv.conversation_id)
         return conv.conversation_id
@@ -133,6 +138,11 @@ class ConversationManager:
             conversation_id (str): 对话 ID, 是 uuid 格式的字符串
 
         """
+        if privacy.enabled:
+            state = privacy.current_run.get()
+            if state and state.active and conversation_id in state.conversations:
+                state.selected[unified_msg_origin] = conversation_id
+            return
         self.session_conversations[unified_msg_origin] = conversation_id
         await sp.session_put(unified_msg_origin, "sel_conv_id", conversation_id)
 
@@ -152,6 +162,11 @@ class ConversationManager:
             conversation_id = await self.get_curr_conversation_id(unified_msg_origin)
         if conversation_id:
             await self.db.delete_conversation(cid=conversation_id)
+            if privacy.enabled:
+                state = privacy.current_run.get()
+                if state and state.selected.get(unified_msg_origin) == conversation_id:
+                    state.selected.pop(unified_msg_origin, None)
+                return
             curr_cid = await self.get_curr_conversation_id(unified_msg_origin)
             if curr_cid == conversation_id:
                 self.session_conversations.pop(unified_msg_origin, None)
@@ -164,6 +179,9 @@ class ConversationManager:
             unified_msg_origin (str): 统一的消息来源字符串。格式为 platform_name:message_type:session_id
 
         """
+        if privacy.enabled:
+            await self.delete_conversation(unified_msg_origin)
+            return
         await self.db.delete_conversations_by_user_id(user_id=unified_msg_origin)
         self.session_conversations.pop(unified_msg_origin, None)
         await sp.session_remove(unified_msg_origin, "sel_conv_id")
@@ -180,6 +198,13 @@ class ConversationManager:
             conversation_id (str): 对话 ID, 是 uuid 格式的字符串
 
         """
+        if privacy.enabled:
+            state = privacy.current_run.get()
+            return (
+                state.selected.get(unified_msg_origin)
+                if state and state.active
+                else None
+            )
         ret = self.session_conversations.get(unified_msg_origin, None)
         if not ret:
             ret = await sp.session_get(unified_msg_origin, "sel_conv_id", None)
